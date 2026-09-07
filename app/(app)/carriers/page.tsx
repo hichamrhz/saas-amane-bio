@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/auth/rbac";
 import { listCarriers } from "@/lib/carriers/service";
 import { prisma } from "@/lib/db/prisma";
@@ -6,6 +7,9 @@ import { CarrierForm } from "./carrier-form";
 
 export default async function CarriersPage() {
   const session = await requireSession();
+  const t = await getTranslations("carriers");
+  const tCommon = await getTranslations("common");
+  const tStatus = await getTranslations("orderStatus");
   const carriers = await listCarriers(session.organizationId);
 
   const orders = await prisma.order.findMany({
@@ -17,12 +21,8 @@ export default async function CarriersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">Transporteurs et encaissements COD</h1>
-      <p className="max-w-2xl text-sm text-neutral-500">
-        Fondations uniquement : affectation transporteur/suivi par commande et montant COD
-        attendu. Le rapprochement des versements et les relevés transporteur (§15) restent à
-        construire — voir PROGRESS.md.
-      </p>
+      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <p className="max-w-2xl text-sm text-neutral-500">{t("description")}</p>
 
       <CarrierForm />
 
@@ -30,16 +30,16 @@ export default async function CarriersPage() {
         <table className="w-full text-sm">
           <thead className="bg-neutral-50 text-start text-xs uppercase text-neutral-500">
             <tr>
-              <Th>Nom</Th>
-              <Th>Frais par défaut</Th>
-              <Th>Notes</Th>
+              <Th>{t("tableName")}</Th>
+              <Th>{t("tableDefaultFee")}</Th>
+              <Th>{tCommon("notes")}</Th>
             </tr>
           </thead>
           <tbody>
             {carriers.length === 0 && (
               <tr>
                 <td colSpan={3} className="px-4 py-6 text-center text-neutral-400">
-                  Aucun transporteur pour le moment.
+                  {t("emptyCarriers")}
                 </td>
               </tr>
             )}
@@ -58,28 +58,26 @@ export default async function CarriersPage() {
         <table className="w-full text-sm">
           <thead className="bg-neutral-50 text-start text-xs uppercase text-neutral-500">
             <tr>
-              <Th>Commande</Th>
-              <Th>Transporteur</Th>
-              <Th>Suivi</Th>
-              <Th>Statut</Th>
-              <Th>COD attendu</Th>
-              <Th>Frais de livraison</Th>
+              <Th>{t("tableName")}</Th>
+              <Th>{t("tableTracking")}</Th>
+              <Th>{t("tableStatus")}</Th>
+              <Th>COD</Th>
+              <Th>{t("tableDeliveryFee")}</Th>
             </tr>
           </thead>
           <tbody>
             {orders.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-neutral-400">
-                  Aucune commande affectée à un transporteur pour le moment.
+                <td colSpan={5} className="px-4 py-6 text-center text-neutral-400">
+                  {t("emptyOrders")}
                 </td>
               </tr>
             )}
             {orders.map((o) => (
               <tr key={o.id} className="border-t border-neutral-100">
                 <td className="px-4 py-2 font-mono text-xs">{o.orderNumber}</td>
-                <td className="px-4 py-2">{o.carrier?.name ?? "—"}</td>
                 <td className="px-4 py-2">{o.trackingNumber ?? "—"}</td>
-                <td className="px-4 py-2">{o.status}</td>
+                <td className="px-4 py-2">{tStatus(o.status)}</td>
                 <td className="px-4 py-2">{formatMoney(o.codAmount)}</td>
                 <td className="px-4 py-2">{formatMoney(o.deliveryFeeAmount)}</td>
               </tr>

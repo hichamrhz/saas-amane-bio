@@ -1,14 +1,18 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/auth/rbac";
 import { listOrders, getOrderStatusCounts } from "@/lib/orders/service";
 import { listLocations } from "@/lib/purchasing/suppliers";
 import { prisma } from "@/lib/db/prisma";
 import { formatMoney } from "@/lib/numbers";
-import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS } from "@/lib/orders/labels";
+import { ORDER_STATUS_COLORS } from "@/lib/orders/labels";
 import { NewOrderForm } from "./new-order-form";
 
 export default async function OrdersPage() {
   const session = await requireSession();
+  const t = await getTranslations("orders");
+  const tStatus = await getTranslations("orderStatus");
+  const tChannel = await getTranslations("orderChannel");
 
   const [orders, statusCounts, locations, products] = await Promise.all([
     listOrders(session.organizationId),
@@ -22,20 +26,20 @@ export default async function OrdersPage() {
   ]);
 
   const kpis: { key: string; label: string }[] = [
-    { key: "NEW", label: "Nouvelles" },
-    { key: "CONFIRMED", label: "Confirmées" },
-    { key: "SHIPPED", label: "En livraison" },
-    { key: "DELIVERED", label: "Livrées" },
-    { key: "RETURN_ANNOUNCED", label: "Retours annoncés" },
-    { key: "CANCELLED_AFTER_PREP", label: "Annulées après prépa" },
+    { key: "NEW", label: t("kpiNew") },
+    { key: "CONFIRMED", label: t("kpiConfirmed") },
+    { key: "SHIPPED", label: t("kpiShipped") },
+    { key: "DELIVERED", label: t("kpiDelivered") },
+    { key: "RETURN_ANNOUNCED", label: t("kpiReturnAnnounced") },
+    { key: "CANCELLED_AFTER_PREP", label: t("kpiCancelledAfterPrep") },
   ];
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Commandes et import</h1>
+        <h1 className="text-2xl font-semibold">{t("title")}</h1>
         <Link href="/orders/import" className="rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white">
-          Importer (CSV/XLSX)
+          {t("importButton")}
         </Link>
       </div>
 
@@ -57,13 +61,13 @@ export default async function OrdersPage() {
         <table className="w-full text-sm">
           <thead className="bg-neutral-50 text-start text-xs uppercase text-neutral-500">
             <tr>
-              <Th>Commande</Th>
-              <Th>Client</Th>
-              <Th>Canal</Th>
-              <Th>Articles</Th>
-              <Th>Total</Th>
-              <Th>Statut</Th>
-              <Th>Date</Th>
+              <Th>{t("tableOrder")}</Th>
+              <Th>{t("tableCustomer")}</Th>
+              <Th>{t("tableChannel")}</Th>
+              <Th>{t("tableArticles")}</Th>
+              <Th>{t("tableTotal")}</Th>
+              <Th>{t("tableStatus")}</Th>
+              <Th>{t("tableDate")}</Th>
               <Th />
             </tr>
           </thead>
@@ -71,7 +75,7 @@ export default async function OrdersPage() {
             {orders.length === 0 && (
               <tr>
                 <td colSpan={8} className="px-4 py-6 text-center text-neutral-400">
-                  Aucune commande pour le moment.
+                  {t("empty")}
                 </td>
               </tr>
             )}
@@ -79,18 +83,18 @@ export default async function OrdersPage() {
               <tr key={o.id} className="border-t border-neutral-100">
                 <td className="px-4 py-2 font-mono text-xs">{o.orderNumber}</td>
                 <td className="px-4 py-2">{o.customer?.name ?? o.customerName ?? "—"}</td>
-                <td className="px-4 py-2">{o.channel}</td>
+                <td className="px-4 py-2">{tChannel(o.channel)}</td>
                 <td className="px-4 py-2">{o.lines.length}</td>
                 <td className="px-4 py-2">{formatMoney(o.codAmount)}</td>
                 <td className="px-4 py-2">
                   <span className={`rounded-full px-2 py-0.5 text-xs ${ORDER_STATUS_COLORS[o.status] ?? ""}`}>
-                    {ORDER_STATUS_LABELS[o.status] ?? o.status}
+                    {tStatus(o.status)}
                   </span>
                 </td>
                 <td className="px-4 py-2">{o.createdAt.toLocaleDateString("fr-FR")}</td>
                 <td className="px-4 py-2 text-end">
                   <Link href={`/orders/${o.id}`} className="text-xs text-neutral-600 underline">
-                    Détail
+                    {t("detail")}
                   </Link>
                 </td>
               </tr>

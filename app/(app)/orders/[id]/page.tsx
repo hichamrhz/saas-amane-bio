@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/auth/rbac";
 import { getOrder } from "@/lib/orders/service";
 import { getReturnByOrderId } from "@/lib/returns/service";
 import { listCarriers } from "@/lib/carriers/service";
 import { formatMoney } from "@/lib/numbers";
-import { ORDER_STATUS_LABELS, CHANNEL_LABELS, MARKETING_SOURCE_LABELS } from "@/lib/orders/labels";
 import { ActionButton } from "../../_components/action-button";
 import { confirmOrderAction, deliverOrderAction, cancelBeforePrepAction } from "../actions";
 import { ShipForm } from "./ship-form";
@@ -15,6 +15,10 @@ import { ReceiveReturnForm } from "./receive-return-form";
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await requireSession();
+  const t = await getTranslations("orders");
+  const tStatus = await getTranslations("orderStatus");
+  const tChannel = await getTranslations("orderChannel");
+  const tMarketing = await getTranslations("marketingSource");
   const [order, carriers] = await Promise.all([
     getOrder(session.organizationId, id),
     listCarriers(session.organizationId),
@@ -37,28 +41,36 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         <div>
           <h1 className="text-2xl font-semibold">{order.orderNumber}</h1>
           <p className="text-sm text-neutral-500">
-            {CHANNEL_LABELS[order.channel]} · {MARKETING_SOURCE_LABELS[order.marketingSource]} ·{" "}
+            {tChannel(order.channel)} · {tMarketing(order.marketingSource)} ·{" "}
             {order.placedAt.toLocaleDateString("fr-FR")}
           </p>
         </div>
         <span className="rounded-full bg-neutral-100 px-3 py-1 text-sm font-medium text-neutral-700">
-          {ORDER_STATUS_LABELS[order.status] ?? order.status}
+          {tStatus(order.status)}
         </span>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <section className="rounded-lg border border-neutral-200 bg-white p-4 text-sm">
-          <h2 className="mb-2 font-semibold text-neutral-800">Client</h2>
+          <h2 className="mb-2 font-semibold text-neutral-800">{t("detailCustomerTitle")}</h2>
           <p>{order.customer?.name ?? order.customerName ?? "—"}</p>
           <p>{order.customer?.phone ?? order.customerPhone ?? "—"}</p>
           <p>{order.deliveryAddress ?? "—"}</p>
         </section>
         <section className="rounded-lg border border-neutral-200 bg-white p-4 text-sm">
-          <h2 className="mb-2 font-semibold text-neutral-800">Montants</h2>
-          <p>Sous-total : {formatMoney(order.subtotalAmount)} MAD</p>
-          <p>Remise : {formatMoney(order.discountAmount)} MAD</p>
-          <p>Livraison : {formatMoney(order.deliveryFeeAmount)} MAD</p>
-          <p className="font-medium">À collecter (COD) : {formatMoney(order.codAmount)} MAD</p>
+          <h2 className="mb-2 font-semibold text-neutral-800">{t("detailAmountsTitle")}</h2>
+          <p>
+            {t("subtotal")} : {formatMoney(order.subtotalAmount)} MAD
+          </p>
+          <p>
+            {t("discount")} : {formatMoney(order.discountAmount)} MAD
+          </p>
+          <p>
+            {t("deliveryFee")} : {formatMoney(order.deliveryFeeAmount)} MAD
+          </p>
+          <p className="font-medium">
+            {t("codAmount")} : {formatMoney(order.codAmount)} MAD
+          </p>
         </section>
       </div>
 
@@ -66,9 +78,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         <table className="w-full text-sm">
           <thead className="bg-neutral-50 text-start text-xs uppercase text-neutral-500">
             <tr>
-              <th className="px-4 py-2 font-medium">Produit</th>
-              <th className="px-4 py-2 font-medium">Quantité</th>
-              <th className="px-4 py-2 font-medium">Prix unitaire</th>
+              <th className="px-4 py-2 font-medium">{t("tableProduct")}</th>
+              <th className="px-4 py-2 font-medium">{t("tableQuantity")}</th>
+              <th className="px-4 py-2 font-medium">{t("tableUnitPrice")}</th>
             </tr>
           </thead>
           <tbody>
@@ -88,26 +100,28 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       <section className="flex flex-wrap gap-3">
         {order.status === "NEW" && (
           <>
-            <ActionButton id={order.id} action={confirmOrderAction} label="Confirmer (sortie de stock)" />
+            <ActionButton id={order.id} action={confirmOrderAction} label={t("confirmButton")} />
             <ActionButton
               id={order.id}
               action={cancelBeforePrepAction}
-              label="Annuler avant préparation"
+              label={t("cancelBeforePrepButton")}
               className="rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700"
-              confirmMessage="Annuler cette commande avant préparation ?"
+              confirmMessage={t("cancelBeforePrepConfirm")}
             />
           </>
         )}
         {order.status === "CONFIRMED" && <ShipForm orderId={order.id} carriers={carriers} />}
         {(order.status === "CONFIRMED" || order.status === "SHIPPED") && (
-          <ActionButton id={order.id} action={deliverOrderAction} label="Marquer comme livrée" />
+          <ActionButton id={order.id} action={deliverOrderAction} label={t("deliverButton")} />
         )}
         {(order.status === "CONFIRMED" || order.status === "SHIPPED") && movementSummaries.length > 0 && (
-          <CancelAfterPrepForm orderId={order.id} movements={movementSummaries} />
+          <CancelAfterPrepForm orderId={order.id} movements={movementSummaries} title={t("cancelAfterPrepTitle")} />
         )}
         {(order.status === "DELIVERED" || order.status === "SHIPPED") &&
           !activeReturn &&
-          movementSummaries.length > 0 && <DeclareReturnForm orderId={order.id} movements={movementSummaries} />}
+          movementSummaries.length > 0 && (
+            <DeclareReturnForm orderId={order.id} movements={movementSummaries} title={t("declareReturnTitle")} />
+          )}
       </section>
 
       {activeReturn && (
@@ -127,13 +141,12 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       )}
 
       <section className="rounded-lg border border-neutral-200 bg-white p-4">
-        <h2 className="mb-3 text-sm font-semibold text-neutral-800">Historique</h2>
+        <h2 className="mb-3 text-sm font-semibold text-neutral-800">{t("historyTitle")}</h2>
         <ul className="flex flex-col gap-2 text-sm">
           {order.events.map((e) => (
             <li key={e.id} className="border-b border-neutral-100 pb-2 last:border-0">
-              {e.fromStatus ? `${ORDER_STATUS_LABELS[e.fromStatus]} → ` : ""}
-              {ORDER_STATUS_LABELS[e.toStatus] ?? e.toStatus} · {e.occurredAt.toLocaleString("fr-FR")} ·{" "}
-              {e.createdBy.name}
+              {e.fromStatus ? `${tStatus(e.fromStatus)} → ` : ""}
+              {tStatus(e.toStatus)} · {e.occurredAt.toLocaleString("fr-FR")} · {e.createdBy.name}
             </li>
           ))}
         </ul>

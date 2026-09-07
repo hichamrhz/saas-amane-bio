@@ -5,15 +5,21 @@ import { cancelAfterPrepAction } from "../actions";
 
 type Movement = { id: string; articleName: string; label: string; quantity: string };
 
-export function CancelAfterPrepForm({ orderId, movements }: { orderId: string; movements: Movement[] }) {
+export function CancelAfterPrepForm({
+  orderId,
+  movements,
+  title,
+}: {
+  orderId: string;
+  movements: Movement[];
+  title: string;
+}) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   return (
     <details className="rounded-lg border border-red-200 bg-red-50 p-4">
-      <summary className="cursor-pointer text-sm font-medium text-red-800">
-        Annuler après préparation (restauration partielle)
-      </summary>
+      <summary className="cursor-pointer text-sm font-medium text-red-800">{title}</summary>
       <form
         className="mt-4 flex flex-col gap-3"
         onSubmit={(e) => {

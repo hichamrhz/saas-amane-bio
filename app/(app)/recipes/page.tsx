@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/auth/rbac";
 import { listRecipes } from "@/lib/recipes/service";
 import { prisma } from "@/lib/db/prisma";
@@ -5,14 +6,10 @@ import { RecipeForm } from "./recipe-form";
 import { ArchiveButton } from "../_components/archive-button";
 import { archiveRecipeAction } from "./actions";
 
-const MODE_LABELS: Record<string, string> = {
-  PER_BOTTLE: "/ bouteille",
-  PER_PACKAGE: "/ colis",
-  PER_ORDER: "/ commande",
-};
-
 export default async function RecipesPage() {
   const session = await requireSession();
+  const t = await getTranslations("recipes");
+  const tCommon = await getTranslations("common");
   const [recipes, consumables] = await Promise.all([
     listRecipes(session.organizationId),
     prisma.articleVariant.findMany({
@@ -26,14 +23,16 @@ export default async function RecipesPage() {
     }),
   ]);
 
+  const modeSuffix: Record<string, string> = {
+    PER_BOTTLE: t("modeSuffixBottle"),
+    PER_PACKAGE: t("modeSuffixPackage"),
+    PER_ORDER: t("modeSuffixOrder"),
+  };
+
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">Recettes d&apos;emballage</h1>
-      <p className="max-w-2xl text-sm text-neutral-500">
-        Une recette décrit l&apos;emballage (carton, papier bulle, ruban, sel, sachet, carte,
-        notice, cadeau) pour un nombre total de bouteilles dans la commande — jamais par
-        produit, jamais les étiquettes (consommées uniquement à la réception coopérative).
-      </p>
+      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <p className="max-w-2xl text-sm text-neutral-500">{t("description")}</p>
 
       <RecipeForm
         consumables={consumables.map((c) => ({ id: c.id, sku: c.sku, label: c.label, articleName: c.article.name }))}
@@ -43,11 +42,11 @@ export default async function RecipesPage() {
         <table className="w-full text-sm">
           <thead className="bg-neutral-50 text-start text-xs uppercase text-neutral-500">
             <tr>
-              <Th>Nom</Th>
-              <Th>Tranche (bouteilles)</Th>
-              <Th>Bouteilles/colis</Th>
-              <Th>Composants (version courante)</Th>
-              <Th>Statut</Th>
+              <Th>{t("tableName")}</Th>
+              <Th>{t("tableRange")}</Th>
+              <Th>{t("tablePackages")}</Th>
+              <Th>{t("tableComponents")}</Th>
+              <Th>{t("tableStatus")}</Th>
               <Th />
             </tr>
           </thead>
@@ -55,8 +54,7 @@ export default async function RecipesPage() {
             {recipes.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-6 text-center text-neutral-400">
-                  Aucune recette pour le moment — la confirmation de commande sera bloquée
-                  tant qu&apos;aucune recette ne couvre la tranche de bouteilles vendue.
+                  {t("empty")}
                 </td>
               </tr>
             )}
@@ -68,14 +66,14 @@ export default async function RecipesPage() {
                   <td className="px-4 py-2">
                     {r.minBottles}–{r.maxBottles}
                   </td>
-                  <td className="px-4 py-2">{r.bottlesPerPackage ?? "1 (défaut)"}</td>
+                  <td className="px-4 py-2">{r.bottlesPerPackage ?? t("packagesDefault")}</td>
                   <td className="px-4 py-2">
                     {version ? (
                       <ul className="list-disc ps-4">
                         {version.components.map((c) => (
                           <li key={c.id}>
                             {c.articleVariant.article.name} · {c.quantityPerUnit.toString()}{" "}
-                            {MODE_LABELS[c.mode]}
+                            {modeSuffix[c.mode]}
                           </li>
                         ))}
                       </ul>
@@ -83,7 +81,7 @@ export default async function RecipesPage() {
                       "—"
                     )}
                   </td>
-                  <td className="px-4 py-2">{r.archivedAt ? "Archivée" : "Active"}</td>
+                  <td className="px-4 py-2">{r.archivedAt ? tCommon("archived") : tCommon("active")}</td>
                   <td className="px-4 py-2 text-end">
                     {!r.archivedAt && <ArchiveButton id={r.id} action={archiveRecipeAction} />}
                   </td>

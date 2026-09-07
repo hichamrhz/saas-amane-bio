@@ -5,13 +5,21 @@ import { declareReturnAction } from "../actions";
 
 type Movement = { id: string; articleName: string; label: string; quantity: string };
 
-export function DeclareReturnForm({ orderId, movements }: { orderId: string; movements: Movement[] }) {
+export function DeclareReturnForm({
+  orderId,
+  movements,
+  title,
+}: {
+  orderId: string;
+  movements: Movement[];
+  title: string;
+}) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   return (
     <details className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-      <summary className="cursor-pointer text-sm font-medium text-amber-800">Déclarer un retour</summary>
+      <summary className="cursor-pointer text-sm font-medium text-amber-800">{title}</summary>
       <form
         className="mt-4 flex flex-col gap-3"
         onSubmit={(e) => {
