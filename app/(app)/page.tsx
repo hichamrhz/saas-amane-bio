@@ -1,17 +1,21 @@
 import { getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/auth/rbac";
 import { prisma } from "@/lib/db/prisma";
+import { getOrderStatusCounts } from "@/lib/orders/service";
 
 export default async function DashboardPage() {
   const session = await requireSession();
   const t = await getTranslations();
 
-  const [productCount, consumableCount, locationCount, movementCount] = await Promise.all([
+  const [productCount, consumableCount, locationCount, movementCount, orderStatusCounts] = await Promise.all([
     prisma.article.count({ where: { organizationId: session.organizationId, kind: "PRODUCT" } }),
     prisma.article.count({ where: { organizationId: session.organizationId, kind: "CONSUMABLE" } }),
     prisma.location.count({ where: { organizationId: session.organizationId } }),
     prisma.stockMovement.count({ where: { organizationId: session.organizationId } }),
+    getOrderStatusCounts(session.organizationId),
   ]);
+
+  const totalOrders = Object.values(orderStatusCounts).reduce((a, b) => a + b, 0);
 
   return (
     <div className="flex flex-col gap-6">
@@ -24,11 +28,17 @@ export default async function DashboardPage() {
         <StatCard label={t("locations.title")} value={locationCount} />
         <StatCard label={t("inventory.movementsLog")} value={movementCount} />
       </div>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <StatCard label="Commandes (total)" value={totalOrders} />
+        <StatCard label="Nouvelles" value={orderStatusCounts.NEW ?? 0} />
+        <StatCard label="Confirmées" value={orderStatusCounts.CONFIRMED ?? 0} />
+        <StatCard label="Livrées" value={orderStatusCounts.DELIVERED ?? 0} />
+      </div>
       <p className="max-w-2xl text-sm text-neutral-500">
         Ce tableau de bord affiche uniquement des compteurs réels tirés de la
-        base de données. Les indicateurs de rentabilité, taux de confirmation
-        et alertes (§17 du cahier des charges) arriveront avec les commandes
-        et la facturation (phases 3 et suivantes) — voir PROGRESS.md.
+        base de données. Les taux de confirmation/livraison par cohorte, le
+        résultat de période et les alertes de réapprovisionnement (§17 du
+        cahier des charges) restent à construire — voir PROGRESS.md.
       </p>
     </div>
   );

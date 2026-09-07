@@ -465,6 +465,21 @@ export async function getOrder(organizationId: string, orderId: string) {
   });
 }
 
+/** Real counts only — never a placeholder zero. Feeds the orders dashboard
+ * cards (cahier des charges §17 — full cohort-based confirmation/delivery
+ * rates are deferred to the reports phase; this is a straightforward
+ * current-status breakdown). */
+export async function getOrderStatusCounts(organizationId: string): Promise<Record<string, number>> {
+  const rows = await prisma.order.groupBy({
+    by: ["status"],
+    where: { organizationId },
+    _count: { _all: true },
+  });
+  const counts: Record<string, number> = {};
+  for (const row of rows) counts[row.status] = row._count._all;
+  return counts;
+}
+
 function isUniqueConstraintError(error: unknown): boolean {
   return (
     typeof error === "object" &&

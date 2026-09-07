@@ -253,6 +253,21 @@ export async function listReturns(organizationId: string) {
   });
 }
 
+export async function getReturnByOrderId(organizationId: string, orderId: string) {
+  return prisma.return.findFirst({
+    where: { organizationId, orderId },
+    orderBy: { createdAt: "desc" },
+    include: {
+      expectedLines: {
+        include: {
+          sourceMovement: { include: { articleVariant: { include: { article: true } } } },
+          receiptLines: true,
+        },
+      },
+    },
+  });
+}
+
 export async function getReturn(organizationId: string, returnId: string) {
   return prisma.return.findFirst({
     where: { id: returnId, organizationId },
