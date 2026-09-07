@@ -1,4 +1,6 @@
-// AMANE BIO — schema Prisma (phases 1-2 : base/auth/permissions, stock/étiquettes/achats)
+// AMANE BIO — schema Prisma
+// Phases 1-2 : base/auth/permissions, stock/étiquettes/achats.
+// Phase 3 : recettes/emballage, commandes, import, retours (voir bas de fichier).
 // Voir ARCHITECTURE.md pour le modèle d'événements et les phases restantes.
 
 generator client {
@@ -46,6 +48,12 @@ model Organization {
   cooperativeTransfers CooperativeTransfer[]
   stockMovements       StockMovement[]
   auditLogs            AuditLog[]
+  customers            Customer[]
+  carriers             Carrier[]
+  recipes              Recipe[]
+  orders               Order[]
+  returns              Return[]
+  importBatches        ImportBatch[]
 }
 
 model User {
@@ -64,6 +72,11 @@ model User {
   cooperativeTransfers CooperativeTransfer[] @relation("TransferCreatedBy")
   stockMovements       StockMovement[]       @relation("MovementCreatedBy")
   auditLogs            AuditLog[]
+  ordersCreated        Order[]               @relation("OrderCreatedBy")
+  orderEvents          OrderEvent[]          @relation("OrderEventCreatedBy")
+  returnsCreated       Return[]              @relation("ReturnCreatedBy")
+  returnReceiptLines   ReturnReceiptLine[]   @relation("ReturnReceiptOperator")
+  importBatches        ImportBatch[]         @relation("ImportBatchCreatedBy")
 
   @@index([organizationId])
 }
@@ -96,6 +109,7 @@ model Location {
   transfersFrom           CooperativeTransfer[] @relation("TransferFrom")
   transfersTo             CooperativeTransfer[] @relation("TransferTo")
   stockMovements          StockMovement[]
+  orders                  Order[]
 
   @@unique([organizationId, name])
   @@index([organizationId])
@@ -205,6 +219,8 @@ model ArticleVariant {
   receptionLinesAsItem ReceptionLine[]       @relation("ReceptionLineArticle")
   cooperativeTransfers CooperativeTransfer[]
   stockMovements       StockMovement[]
+  recipeComponents     RecipeComponent[]
+  orderLines           OrderLine[]
 
   @@unique([organizationId, sku])
   @@index([organizationId])
@@ -396,6 +412,9 @@ enum StockMovementType {
   LABEL_CONSUMPTION
   COOPERATIVE_RECEPTION
   CORRECTION
+  ORDER_EXIT // Phase 3 : sortie produit ou emballage à la confirmation d'une commande
+  RETURN_RECEPTION // Phase 3 : réintégration (saine ou en quarantaine) d'un retour
+  LOSS // Phase 3 : perte constatée sur un retour/litige
 }
 
 model StockMovement {
@@ -433,6 +452,16 @@ model StockMovement {
   cooperativeTransfer   CooperativeTransfer? @relation(fields: [cooperativeTransferId], references: [id])
   cooperativeTransferId String?
 
+  // Phase 3 : sortie de commande (produit ou emballage), tracée à la recette utilisée.
+  order           Order?         @relation(fields: [orderId], references: [id])
+  orderId         String?
+  recipeVersion   RecipeVersion? @relation(fields: [recipeVersionId], references: [id])
+  recipeVersionId String?
+
+  returnExpectedLines       ReturnExpectedLine[]
+  returnReceiptLinesHealthy ReturnReceiptLine[]  @relation("ReturnHealthyMovement")
+  returnReceiptLinesDamaged ReturnReceiptLine[]  @relation("ReturnDamagedMovement")
+
   @@index([organizationId, articleVariantId, locationId])
   @@index([organizationId, eventDate])
   @@index([referenceType, referenceId])
@@ -459,4 +488,338 @@ model AuditLog {
 
   @@index([organizationId, entityType, entityId])
   @@index([organizationId, createdAt])
+}
+
+// =============================================================================
+// PHASE 3 — Recettes/emballage, commandes, import, retours, transporteurs
+// Voir ARCHITECTURE.md §8-11 pour le modèle d'événements et les coupures assumées.
+// =============================================================================
+
+model Customer {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  phone          String?
+  address        String?
+  notes          String?
+  archivedAt     DateTime?
+  createdAt      DateTime     @default(now())
+
+  orders Order[]
+
+  @@index([organizationId])
+  @@index([organizationId, phone])
+}
+
+model Carrier {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  defaultFee     Decimal?     @db.Decimal(14, 2)
+  notes          String?
+  archivedAt     DateTime?
+  createdAt      DateTime     @default(now())
+
+  orders Order[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+// ---------------------------------------------------------------------------
+// Recettes d'emballage — par tranche de nombre total de bouteilles de la
+// commande, jamais par produit (voir ARCHITECTURE.md §8). Les étiquettes ne
+// font jamais partie d'une recette : elles sont consommées à la réception
+// coopérative (§4), pas à la vente.
+// ---------------------------------------------------------------------------
+
+enum RecipeComponentMode {
+  PER_BOTTLE // quantité × nombre total de bouteilles de la commande
+  PER_PACKAGE // quantité × nombre de colis (bouteilles / bottlesPerPackage, arrondi au colis supérieur)
+  PER_ORDER // quantité × 1, une seule fois par commande (ex: carte, notice)
+}
+
+model Recipe {
+  id                String       @id @default(cuid())
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name              String
+  minBottles        Int
+  maxBottles        Int
+  bottlesPerPackage Int? // requis pour utiliser des composants en mode PER_PACKAGE ; sinon 1 colis par commande
+  archivedAt        DateTime?
+  createdAt         DateTime     @default(now())
+
+  versions RecipeVersion[]
+
+  @@index([organizationId])
+  @@index([organizationId, minBottles, maxBottles])
+}
+
+model RecipeVersion {
+  id            String   @id @default(cuid())
+  recipeId      String
+  recipe        Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  version       Int
+  effectiveFrom DateTime
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  components     RecipeComponent[]
+  stockMovements StockMovement[]
+
+  @@unique([recipeId, version])
+  @@index([recipeId])
+}
+
+model RecipeComponent {
+  id               String              @id @default(cuid())
+  recipeVersionId  String
+  recipeVersion    RecipeVersion       @relation(fields: [recipeVersionId], references: [id], onDelete: Cascade)
+  articleVariantId String
+  articleVariant   ArticleVariant      @relation(fields: [articleVariantId], references: [id])
+  mode             RecipeComponentMode
+  quantityPerUnit  Decimal             @db.Decimal(18, 6)
+
+  @@index([recipeVersionId])
+}
+
+// ---------------------------------------------------------------------------
+// Commandes
+// ---------------------------------------------------------------------------
+
+enum OrderChannel {
+  SITE
+  WHATSAPP
+}
+
+enum MarketingSource {
+  FACEBOOK
+  TIKTOK
+  GOOGLE
+  AFFILIATE
+  OTHER
+  UNKNOWN
+}
+
+// Machine à états documentée dans ARCHITECTURE.md §10.
+enum OrderStatus {
+  NEW
+  CANCELLED_BEFORE_PREP
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED_AFTER_PREP
+  RETURN_ANNOUNCED
+  RETURN_RECEIVED
+  LOST
+}
+
+model Order {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  orderNumber String // identifiant métier stable, unique par organisation (saisi ou importé)
+  externalRef String? // identifiant de la source (ex: référence de ligne Google Sheet)
+
+  customerId      String?
+  customer        Customer? @relation(fields: [customerId], references: [id])
+  customerName    String? // dénormalisé : utilisable même sans fiche client (import rapide)
+  customerPhone   String?
+  deliveryAddress String?
+
+  channel         OrderChannel
+  marketingSource MarketingSource @default(UNKNOWN)
+
+  carrierId      String?
+  carrier        Carrier? @relation(fields: [carrierId], references: [id])
+  trackingNumber String?
+
+  status OrderStatus @default(NEW)
+
+  // Emplacement de sortie du produit et de l'emballage à la confirmation.
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id])
+
+  subtotalAmount    Decimal @db.Decimal(14, 2)
+  discountAmount    Decimal @default(0) @db.Decimal(14, 2)
+  deliveryFeeAmount Decimal @default(0) @db.Decimal(14, 2)
+  codAmount         Decimal @db.Decimal(14, 2) // montant total à collecter par le transporteur
+
+  withSalt Boolean @default(true) // §6 : option sans sel -> aucun sel ni sachet consommé
+
+  // Commande historique déjà reflétée dans le stock d'ouverture : la confirmation
+  // n'écrit alors aucun mouvement de stock (même principe que Reception.OPENING_STOCK).
+  skipStockImpact Boolean @default(false)
+
+  placedAt    DateTime // date de la demande initiale (événement, pas la saisie)
+  confirmedAt DateTime?
+  shippedAt   DateTime?
+  deliveredAt DateTime?
+  cancelledAt DateTime?
+
+  notes String?
+
+  // Idempotence création (double clic / retry / réimport identique).
+  clientRequestId String?
+
+  createdById String
+  createdBy   User     @relation("OrderCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lines          OrderLine[]
+  events         OrderEvent[]
+  returns        Return[]
+  importRows     ImportRow[]
+  stockMovements StockMovement[]
+
+  @@unique([organizationId, orderNumber])
+  @@unique([organizationId, clientRequestId])
+  @@index([organizationId])
+  @@index([organizationId, status])
+}
+
+model OrderLine {
+  id               String         @id @default(cuid())
+  orderId          String
+  order            Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  articleVariantId String
+  articleVariant   ArticleVariant @relation(fields: [articleVariantId], references: [id])
+  quantity         Decimal        @db.Decimal(18, 4)
+  unitPrice        Decimal        @db.Decimal(14, 2)
+  discount         Decimal        @default(0) @db.Decimal(14, 2)
+
+  @@index([orderId])
+}
+
+// Historique complet des transitions de statut (§8 : "documenter les transitions").
+model OrderEvent {
+  id          String       @id @default(cuid())
+  orderId     String
+  order       Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus  OrderStatus?
+  toStatus    OrderStatus
+  occurredAt  DateTime     @default(now())
+  createdById String
+  createdBy   User         @relation("OrderEventCreatedBy", fields: [createdById], references: [id])
+  notes       String?
+
+  @@index([orderId])
+}
+
+// ---------------------------------------------------------------------------
+// Retours et livraisons refusées
+// ---------------------------------------------------------------------------
+
+enum ReturnStatus {
+  ANNOUNCED
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CLOSED
+}
+
+model Return {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  orderId        String
+  order          Order        @relation(fields: [orderId], references: [id])
+  status         ReturnStatus @default(ANNOUNCED)
+  announcedAt    DateTime     @default(now())
+  createdById    String
+  createdBy      User         @relation("ReturnCreatedBy", fields: [createdById], references: [id])
+  notes          String?
+  createdAt      DateTime     @default(now())
+
+  expectedLines ReturnExpectedLine[]
+
+  @@index([organizationId])
+  @@index([orderId])
+}
+
+// Ce qui est attendu en retour, une ligne par mouvement de sortie d'origine
+// (produit ou emballage réellement récupérable). Snapshot figé à la déclaration.
+model ReturnExpectedLine {
+  id               String        @id @default(cuid())
+  returnId         String
+  return           Return        @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  sourceMovementId String
+  sourceMovement   StockMovement @relation(fields: [sourceMovementId], references: [id])
+  expectedQuantity Decimal       @db.Decimal(18, 4)
+
+  receiptLines ReturnReceiptLine[]
+
+  @@unique([returnId, sourceMovementId])
+  @@index([returnId])
+}
+
+// Une réception physique (partielle ou totale) pour une ligne attendue. Le cumul
+// reçu/sain/abîmé se calcule en sommant ces lignes — jamais un compteur muté — ce
+// qui empêche par construction toute double réintégration (test d'acceptation #16).
+model ReturnReceiptLine {
+  id               String             @id @default(cuid())
+  expectedLineId   String
+  expectedLine     ReturnExpectedLine @relation(fields: [expectedLineId], references: [id], onDelete: Cascade)
+  receivedAt       DateTime           @default(now())
+  operatorId       String
+  operator         User               @relation("ReturnReceiptOperator", fields: [operatorId], references: [id])
+  receivedQuantity Decimal            @db.Decimal(18, 4)
+  healthyQuantity  Decimal            @db.Decimal(18, 4)
+  damagedQuantity  Decimal            @db.Decimal(18, 4)
+  notes            String?
+
+  healthyMovementId String?
+  healthyMovement   StockMovement? @relation("ReturnHealthyMovement", fields: [healthyMovementId], references: [id])
+  damagedMovementId String?
+  damagedMovement   StockMovement? @relation("ReturnDamagedMovement", fields: [damagedMovementId], references: [id])
+
+  @@index([expectedLineId])
+}
+
+// ---------------------------------------------------------------------------
+// Import (copier-coller / CSV / XLSX) — voir ARCHITECTURE.md §11
+// ---------------------------------------------------------------------------
+
+enum ImportRowStatus {
+  VALID_NEW
+  VALID_UPDATE
+  DUPLICATE_NO_CHANGE
+  INVALID
+  REGRESSION_SKIPPED
+}
+
+model ImportBatch {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sourceFormat   String // "CSV" | "PASTE" | "XLSX"
+  columnMapping  Json
+  summary        Json? // rempli après validation : { created, updated, duplicates, invalid, regressionsSkipped }
+  createdById    String
+  createdBy      User         @relation("ImportBatchCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime     @default(now())
+
+  rows ImportRow[]
+
+  @@index([organizationId])
+  @@index([organizationId, createdAt])
+}
+
+model ImportRow {
+  id          String          @id @default(cuid())
+  batchId     String
+  batch       ImportBatch     @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  rowNumbers  Int[] // lignes sources regroupées (une commande = potentiellement plusieurs lignes)
+  orderNumber String?
+  rawData     Json
+  status      ImportRowStatus
+  message     String?
+  orderId     String?
+  order       Order?          @relation(fields: [orderId], references: [id])
+
+  @@index([batchId])
 }

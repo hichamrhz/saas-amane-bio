@@ -41,6 +41,16 @@ async function main() {
     },
   });
 
+  await prisma.location.upsert({
+    where: { organizationId_name: { organizationId: org.id, name: "Quarantaine" } },
+    update: {},
+    create: {
+      organizationId: org.id,
+      name: "Quarantaine",
+      kind: "QUARANTINE",
+    },
+  });
+
   const passwordHash = await hash(OWNER_PASSWORD, 10);
   const owner = await prisma.user.upsert({
     where: { email: OWNER_EMAIL },
