@@ -1,0 +1,462 @@
+// AMANE BIO — schema Prisma (phases 1-2 : base/auth/permissions, stock/étiquettes/achats)
+// Voir ARCHITECTURE.md pour le modèle d'événements et les phases restantes.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Organisation, utilisateurs, permissions (Phase 1)
+// ---------------------------------------------------------------------------
+
+enum OrgRole {
+  OWNER // accès complet
+  STOCK // stock / préparation
+  CONFIRMATION // confirmation / suivi commandes
+  FINANCE // finance
+  READONLY // lecture seule
+}
+
+enum UserStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  currency  String   @default("MAD")
+  timezone  String   @default("Africa/Casablanca")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users                User[]
+  locations            Location[]
+  suppliers            Supplier[]
+  articles             Article[]
+  articleVariants      ArticleVariant[]
+  lots                 Lot[]
+  purchaseOrders       PurchaseOrder[]
+  receptions           Reception[]
+  cooperativeTransfers CooperativeTransfer[]
+  stockMovements       StockMovement[]
+  auditLogs            AuditLog[]
+}
+
+model User {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email          String       @unique
+  name           String
+  passwordHash   String
+  role           OrgRole
+  status         UserStatus   @default(ACTIVE)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  receptions           Reception[]           @relation("ReceptionCreatedBy")
+  cooperativeTransfers CooperativeTransfer[] @relation("TransferCreatedBy")
+  stockMovements       StockMovement[]       @relation("MovementCreatedBy")
+  auditLogs            AuditLog[]
+
+  @@index([organizationId])
+}
+
+// ---------------------------------------------------------------------------
+// Emplacements, fournisseurs, catalogue, unités (Phase 2)
+// ---------------------------------------------------------------------------
+
+enum LocationKind {
+  INTERNAL // chez moi
+  COOPERATIVE // chez la coopérative
+  TRANSIT
+  QUARANTINE
+  OTHER
+}
+
+model Location {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  kind           LocationKind
+  isDefault      Boolean      @default(false)
+  archivedAt     DateTime?
+  createdAt      DateTime     @default(now())
+
+  lots                    Lot[]
+  receptionsAsDestination Reception[]           @relation("ReceptionDestination")
+  receptionsAsCooperative Reception[]           @relation("ReceptionCooperativeSource")
+  transfersFrom           CooperativeTransfer[] @relation("TransferFrom")
+  transfersTo             CooperativeTransfer[] @relation("TransferTo")
+  stockMovements          StockMovement[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+model Supplier {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  phone          String?
+  leadTimeDays   Int?
+  notes          String?
+  archivedAt     DateTime?
+  createdAt      DateTime     @default(now())
+
+  articleVariants ArticleVariant[]
+  purchaseOrders  PurchaseOrder[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+enum ArticleKind {
+  PRODUCT
+  CONSUMABLE
+}
+
+enum ConsumableType {
+  LABEL
+  CARTON
+  BUBBLE_WRAP
+  TAPE
+  SALT
+  SALT_SACHET
+  CARD
+  NOTICE
+  GIFT
+  OTHER
+}
+
+enum ArticleStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+// Article = famille logique (ex: "Vinaigre de figue", "Carton", "Étiquette Vinaigre de figue").
+// La variante (ArticleVariant) porte le SKU réel, l'unité et le stock.
+model Article {
+  id             String          @id @default(cuid())
+  organizationId String
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  kind           ArticleKind
+  consumableType ConsumableType? // requis si kind = CONSUMABLE
+  name           String
+  category       String? // famille libre et extensible : vinaigres, confitures, huiles, graines, autres...
+  photoUrl       String?
+  status         ArticleStatus   @default(ACTIVE)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  variants ArticleVariant[]
+
+  @@index([organizationId])
+}
+
+// Une variante = un SKU réel, avec ses propres règles d'unité/conversion.
+// Deux rouleaux de largeurs différentes sont deux variantes différentes : jamais fusionnées.
+model ArticleVariant {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  articleId      String
+  article        Article      @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  sku   String // unique par organisation
+  label String // ex: "500ml", "Carton 30x20x15cm", "Rouleau 100m x 1.2m"
+
+  // Unité d'achat vs unité de stock (conversion exacte, ex: 1 rouleau = 100 m ; 1 kg = 1000 g)
+  purchaseUnitLabel     String // ex: "rouleau", "kg", "unité"
+  stockUnitLabel        String // ex: "m", "g", "unité" — unité canonique utilisée par le stock
+  purchaseToStockFactor Decimal  @default(1) @db.Decimal(18, 6) // 1 unité d'achat = X unités de stock
+  isIntegerStock        Boolean  @default(true) // false pour mètres/grammes (décimales autorisées)
+  widthCm               Decimal? @db.Decimal(10, 2) // pour papier bulle / ruban : largeur, distingue les variantes
+
+  // Mapping étiquette → produit (uniquement pour les variantes CONSUMABLE de type LABEL).
+  // Requis pour la consommation automatique d'étiquettes à la réception coopérative (règle §4).
+  productVariantId String?
+  productVariant   ArticleVariant?  @relation("LabelForProduct", fields: [productVariantId], references: [id])
+  labelVariants    ArticleVariant[] @relation("LabelForProduct")
+
+  supplierId        String?
+  supplier          Supplier? @relation(fields: [supplierId], references: [id])
+  defaultLocationId String?
+
+  reorderThreshold  Decimal? @db.Decimal(18, 4)
+  reorderLeadDays   Int?
+  lotTracked        Boolean  @default(false)
+  expirationTracked Boolean  @default(false)
+
+  status    ArticleStatus @default(ACTIVE)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  lots                 Lot[]
+  purchaseOrderLines   PurchaseOrderLine[]
+  receptionLinesAsItem ReceptionLine[]       @relation("ReceptionLineArticle")
+  cooperativeTransfers CooperativeTransfer[]
+  stockMovements       StockMovement[]
+
+  @@unique([organizationId, sku])
+  @@index([organizationId])
+  @@index([productVariantId])
+}
+
+model Lot {
+  id               String         @id @default(cuid())
+  organizationId   String
+  organization     Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  articleVariantId String
+  articleVariant   ArticleVariant @relation(fields: [articleVariantId], references: [id])
+  lotNumber        String
+  expirationDate   DateTime?
+  notes            String?
+  createdAt        DateTime       @default(now())
+
+  receptionLines ReceptionLine[]
+  stockMovements StockMovement[]
+  location       Location?       @relation(fields: [locationId], references: [id])
+  locationId     String?
+
+  @@unique([organizationId, articleVariantId, lotNumber])
+  @@index([organizationId])
+}
+
+// ---------------------------------------------------------------------------
+// Achats et réceptions (Phase 2)
+// ---------------------------------------------------------------------------
+
+enum PurchaseOrderStatus {
+  DRAFT
+  ORDERED
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIAL
+  PAID
+}
+
+model PurchaseOrder {
+  id             String              @id @default(cuid())
+  organizationId String
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  supplierId     String
+  supplier       Supplier            @relation(fields: [supplierId], references: [id])
+  reference      String?
+  orderDate      DateTime            @default(now())
+  status         PurchaseOrderStatus @default(DRAFT)
+  paymentStatus  PaymentStatus       @default(UNPAID)
+  dueDate        DateTime?
+  documentUrl    String?
+  notes          String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  lines      PurchaseOrderLine[]
+  receptions Reception[]
+
+  @@index([organizationId])
+}
+
+model PurchaseOrderLine {
+  id               String         @id @default(cuid())
+  purchaseOrderId  String
+  purchaseOrder    PurchaseOrder  @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  articleVariantId String
+  articleVariant   ArticleVariant @relation(fields: [articleVariantId], references: [id])
+  quantityOrdered  Decimal        @db.Decimal(18, 4)
+  quantityReceived Decimal        @default(0) @db.Decimal(18, 4)
+  unitPrice        Decimal        @db.Decimal(18, 6)
+  discount         Decimal        @default(0) @db.Decimal(18, 6)
+
+  receptionLines ReceptionLine[]
+
+  @@index([purchaseOrderId])
+}
+
+enum ReceptionKind {
+  SUPPLIER_PURCHASE // achat consommable ou produit fini, hors coopérative
+  COOPERATIVE_PRODUCT // bouteilles reçues de la coopérative -> consomme des étiquettes
+  OPENING_STOCK // stock d'ouverture -> ne consomme jamais d'étiquettes
+}
+
+model Reception {
+  id             String        @id @default(cuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  kind           ReceptionKind
+
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+
+  // Destination du produit / consommable reçu.
+  locationId String
+  location   Location @relation("ReceptionDestination", fields: [locationId], references: [id])
+
+  // Requis uniquement pour kind = COOPERATIVE_PRODUCT : emplacement où les étiquettes
+  // correspondantes sont physiquement consommées (généralement la coopérative).
+  cooperativeLocationId String?
+  cooperativeLocation   Location? @relation("ReceptionCooperativeSource", fields: [cooperativeLocationId], references: [id])
+
+  // Si vrai, le coût unitaire saisi sur chaque ligne inclut déjà le coût de l'étiquette
+  // consommée : on ne l'ajoute pas une deuxième fois (règle §5).
+  costIncludesLabel Boolean @default(false)
+
+  reference   String?
+  eventDate   DateTime // date réelle de l'événement (réception physique)
+  freightCost Decimal  @default(0) @db.Decimal(18, 6)
+  notes       String?
+
+  // Idempotence : absorbe un double-clic ou un retry réseau sans double écriture.
+  clientRequestId String?
+
+  createdById String
+  createdBy   User     @relation("ReceptionCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  lines          ReceptionLine[]
+  stockMovements StockMovement[]
+
+  @@unique([organizationId, clientRequestId])
+  @@index([organizationId])
+  @@index([organizationId, eventDate])
+}
+
+model ReceptionLine {
+  id                  String             @id @default(cuid())
+  receptionId         String
+  reception           Reception          @relation(fields: [receptionId], references: [id], onDelete: Cascade)
+  articleVariantId    String
+  articleVariant      ArticleVariant     @relation("ReceptionLineArticle", fields: [articleVariantId], references: [id])
+  purchaseOrderLineId String?
+  purchaseOrderLine   PurchaseOrderLine? @relation(fields: [purchaseOrderLineId], references: [id])
+
+  quantity       Decimal   @db.Decimal(18, 4)
+  unitCost       Decimal   @db.Decimal(18, 6) // coût saisi (avant incorporation éventuelle de l'étiquette)
+  lotId          String?
+  lot            Lot?      @relation(fields: [lotId], references: [id])
+  expirationDate DateTime?
+
+  @@index([receptionId])
+}
+
+// Transfert d'étiquettes vers/depuis la coopérative : change l'emplacement, jamais la
+// quantité totale ni la consommation (règle §4).
+model CooperativeTransfer {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  articleVariantId String
+  articleVariant   ArticleVariant @relation(fields: [articleVariantId], references: [id])
+
+  fromLocationId String
+  fromLocation   Location @relation("TransferFrom", fields: [fromLocationId], references: [id])
+  toLocationId   String
+  toLocation     Location @relation("TransferTo", fields: [toLocationId], references: [id])
+
+  quantity  Decimal  @db.Decimal(18, 4)
+  eventDate DateTime
+  notes     String?
+
+  clientRequestId String?
+
+  createdById String
+  createdBy   User     @relation("TransferCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  stockMovements StockMovement[]
+
+  @@unique([organizationId, clientRequestId])
+  @@index([organizationId])
+}
+
+// ---------------------------------------------------------------------------
+// Journal de mouvements de stock — source de vérité unique et immuable (§4, §18)
+// ---------------------------------------------------------------------------
+
+enum StockMovementType {
+  OPENING
+  PURCHASE_RECEPTION
+  COOPERATIVE_TRANSFER_OUT
+  COOPERATIVE_TRANSFER_IN
+  LABEL_CONSUMPTION
+  COOPERATIVE_RECEPTION
+  CORRECTION
+}
+
+model StockMovement {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  articleVariantId String
+  articleVariant   ArticleVariant @relation(fields: [articleVariantId], references: [id])
+  locationId       String
+  location         Location       @relation(fields: [locationId], references: [id])
+  lotId            String?
+  lot              Lot?           @relation(fields: [lotId], references: [id])
+
+  type          StockMovementType
+  quantityDelta Decimal           @db.Decimal(18, 4) // signé : + entrée, - sortie
+  unitCost      Decimal?          @db.Decimal(18, 6) // coût unitaire au moment du mouvement (entrées et consommations)
+
+  // Référence à l'opération source, pour l'audit et pour relier une paire de mouvements
+  // (ex: transfert OUT/IN, réception produit / consommation étiquette).
+  referenceType     String
+  referenceId       String
+  relatedMovementId String?
+
+  reasonCode String? // requis pour CORRECTION
+  notes      String?
+
+  eventDate   DateTime // date de l'événement métier
+  createdById String
+  createdBy   User     @relation("MovementCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now()) // date de saisie
+
+  reception             Reception?           @relation(fields: [receptionId], references: [id])
+  receptionId           String?
+  cooperativeTransfer   CooperativeTransfer? @relation(fields: [cooperativeTransferId], references: [id])
+  cooperativeTransferId String?
+
+  @@index([organizationId, articleVariantId, locationId])
+  @@index([organizationId, eventDate])
+  @@index([referenceType, referenceId])
+}
+
+// ---------------------------------------------------------------------------
+// Audit (Phase 1, appliqué dès les actions critiques de la Phase 2)
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id])
+
+  action     String // ex: "reception.create", "cooperative_transfer.create"
+  entityType String
+  entityId   String
+  before     Json?
+  after      Json?
+  reason     String?
+  createdAt  DateTime @default(now())
+
+  @@index([organizationId, entityType, entityId])
+  @@index([organizationId, createdAt])
+}

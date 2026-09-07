@@ -1,0 +1,143 @@
+{
+  "app": {
+    "name": "أمان بيو"
+  },
+  "common": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "create": "إنشاء",
+    "edit": "تعديل",
+    "delete": "أرشفة",
+    "search": "بحث",
+    "loading": "جارٍ التحميل…",
+    "error": "حدث خطأ.",
+    "noResults": "لا توجد نتائج.",
+    "actions": "إجراءات",
+    "status": "الحالة",
+    "active": "نشط",
+    "archived": "مؤرشف",
+    "comingSoon": "هذه الميزة ستتوفر في مرحلة لاحقة.",
+    "soon": "قريبًا",
+    "requiredField": "هذا الحقل مطلوب.",
+    "confirm": "تأكيد",
+    "back": "رجوع",
+    "quantity": "الكمية",
+    "unit": "الوحدة",
+    "date": "التاريخ",
+    "notes": "ملاحظات",
+    "yes": "نعم",
+    "no": "لا"
+  },
+  "nav": {
+    "dashboard": "لوحة التحكم",
+    "products": "المنتجات",
+    "packaging": "التغليف والملصقات",
+    "cooperative": "التعاونية والاستلامات",
+    "purchases": "المشتريات والموردون",
+    "recipes": "وصفات التغليف",
+    "orders": "الطلبات والاستيراد",
+    "returns": "المرتجعات",
+    "carriers": "الناقلون والدفع عند الاستلام",
+    "team": "الفريق والمسوقون بالعمولة",
+    "commissions": "العمولات والمدفوعات",
+    "expenses": "المصاريف والإشهار",
+    "inventory": "الجرد والحركات",
+    "reports": "التقارير",
+    "settings": "الإعدادات والمستخدمون"
+  },
+  "auth": {
+    "signInTitle": "تسجيل الدخول إلى أمان بيو",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "submit": "تسجيل الدخول",
+    "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
+    "signOut": "تسجيل الخروج"
+  },
+  "dashboard": {
+    "welcome": "مرحبًا، {name}",
+    "roleLabel": "الدور: {role}",
+    "orgLabel": "المؤسسة: {org}"
+  },
+  "catalog": {
+    "title": "المنتجات",
+    "newVariant": "نسخة جديدة",
+    "sku": "رمز المنتج (SKU)",
+    "label": "الحجم/الشكل",
+    "category": "الفئة",
+    "stockUnit": "وحدة المخزون",
+    "purchaseUnit": "وحدة الشراء",
+    "conversionFactor": "1 وحدة شراء =",
+    "integerOnly": "كميات صحيحة فقط",
+    "widthCm": "العرض (سم)",
+    "linkedProduct": "المنتج المرتبط (الملصق)",
+    "onHand": "المخزون المتوفر",
+    "kindProduct": "منتج",
+    "kindConsumable": "مستهلك",
+    "consumableType": "نوع المستهلك"
+  },
+  "locations": {
+    "title": "المواقع",
+    "kindInternal": "عندي",
+    "kindCooperative": "التعاونية",
+    "kindTransit": "عبور",
+    "kindQuarantine": "حجر",
+    "kindOther": "أخرى"
+  },
+  "suppliers": {
+    "title": "الموردون",
+    "name": "الاسم",
+    "phone": "الهاتف",
+    "leadTimeDays": "مدة التوريد (أيام)"
+  },
+  "purchases": {
+    "title": "المشتريات والاستلامات",
+    "purchaseOrders": "أوامر الشراء",
+    "receptions": "الاستلامات",
+    "newReception": "استلام جديد",
+    "kindSupplier": "شراء من مورد",
+    "kindCooperative": "استلام من التعاونية (قوارير)",
+    "kindOpening": "مخزون افتتاحي",
+    "destination": "موقع الوجهة",
+    "cooperativeSource": "موقع التعاونية (مصدر الملصقات)",
+    "costIncludesLabel": "التكلفة المدخلة تشمل الملصق بالفعل",
+    "unitCost": "تكلفة الوحدة",
+    "eventDate": "تاريخ الحدث",
+    "insufficientLabels": "ملصقات غير كافية: {available} متوفرة لدى التعاونية، والمطلوب {required} من {label}. تم إلغاء الاستلام بالكامل، لم تُسجَّل أي حركة.",
+    "noLabelMapping": "لا يوجد ملصق مرتبط بهذا المنتج في الإعدادات. تم إيقاف الاستلام.",
+    "ambiguousLabelMapping": "هناك أكثر من ملصق مرتبط بهذا المنتج. صحّح الإعدادات قبل المتابعة.",
+    "receptionCreated": "تم تسجيل الاستلام."
+  },
+  "cooperativeTransfers": {
+    "title": "التحويلات إلى التعاونية",
+    "new": "تحويل جديد",
+    "from": "من",
+    "to": "إلى",
+    "created": "تم تسجيل التحويل."
+  },
+  "inventory": {
+    "title": "الجرد والحركات",
+    "movementsLog": "سجل الحركات",
+    "onHandByLocation": "المخزون المتوفر حسب الموقع",
+    "type": "نوع الحركة",
+    "movementOpening": "افتتاح",
+    "movementPurchaseReception": "استلام شراء",
+    "movementCooperativeTransferOut": "تحويل صادر (تعاونية)",
+    "movementCooperativeTransferIn": "تحويل وارد (تعاونية)",
+    "movementLabelConsumption": "استهلاك ملصق",
+    "movementCooperativeReception": "استلام من التعاونية (منتج)",
+    "movementCorrection": "تصحيح"
+  },
+  "settings": {
+    "title": "الإعدادات والمستخدمون",
+    "language": "اللغة",
+    "french": "Français",
+    "arabic": "العربية"
+  },
+  "roles": {
+    "OWNER": "المالك",
+    "STOCK": "المخزون / التحضير",
+    "CONFIRMATION": "التأكيد / المتابعة",
+    "FINANCE": "المالية",
+    "READONLY": "قراءة فقط"
+  }
+}

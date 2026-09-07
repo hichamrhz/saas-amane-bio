@@ -1,0 +1,143 @@
+{
+  "app": {
+    "name": "AMANE BIO"
+  },
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "create": "Créer",
+    "edit": "Modifier",
+    "delete": "Archiver",
+    "search": "Rechercher",
+    "loading": "Chargement…",
+    "error": "Une erreur est survenue.",
+    "noResults": "Aucun résultat.",
+    "actions": "Actions",
+    "status": "Statut",
+    "active": "Actif",
+    "archived": "Archivé",
+    "comingSoon": "Fonctionnalité à venir dans une prochaine étape.",
+    "soon": "à venir",
+    "requiredField": "Ce champ est requis.",
+    "confirm": "Confirmer",
+    "back": "Retour",
+    "quantity": "Quantité",
+    "unit": "Unité",
+    "date": "Date",
+    "notes": "Notes",
+    "yes": "Oui",
+    "no": "Non"
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "products": "Produits",
+    "packaging": "Emballages et étiquettes",
+    "cooperative": "Coopérative et réceptions",
+    "purchases": "Achats et fournisseurs",
+    "recipes": "Recettes d'emballage",
+    "orders": "Commandes et import",
+    "returns": "Retours",
+    "carriers": "Transporteurs et COD",
+    "team": "Équipe et affiliés",
+    "commissions": "Commissions et paiements",
+    "expenses": "Dépenses et publicité",
+    "inventory": "Inventaires et mouvements",
+    "reports": "Rapports",
+    "settings": "Paramètres et utilisateurs"
+  },
+  "auth": {
+    "signInTitle": "Connexion à AMANE BIO",
+    "email": "Adresse e-mail",
+    "password": "Mot de passe",
+    "submit": "Se connecter",
+    "invalidCredentials": "E-mail ou mot de passe incorrect.",
+    "signOut": "Déconnexion"
+  },
+  "dashboard": {
+    "welcome": "Bienvenue, {name}",
+    "roleLabel": "Rôle : {role}",
+    "orgLabel": "Organisation : {org}"
+  },
+  "catalog": {
+    "title": "Produits",
+    "newVariant": "Nouvelle variante",
+    "sku": "SKU",
+    "label": "Format",
+    "category": "Famille",
+    "stockUnit": "Unité de stock",
+    "purchaseUnit": "Unité d'achat",
+    "conversionFactor": "1 unité d'achat =",
+    "integerOnly": "Quantités entières uniquement",
+    "widthCm": "Largeur (cm)",
+    "linkedProduct": "Produit associé (étiquette)",
+    "onHand": "Stock disponible",
+    "kindProduct": "Produit",
+    "kindConsumable": "Consommable",
+    "consumableType": "Type de consommable"
+  },
+  "locations": {
+    "title": "Emplacements",
+    "kindInternal": "Chez moi",
+    "kindCooperative": "Coopérative",
+    "kindTransit": "Transit",
+    "kindQuarantine": "Quarantaine",
+    "kindOther": "Autre"
+  },
+  "suppliers": {
+    "title": "Fournisseurs",
+    "name": "Nom",
+    "phone": "Téléphone",
+    "leadTimeDays": "Délai (jours)"
+  },
+  "purchases": {
+    "title": "Achats et réceptions",
+    "purchaseOrders": "Commandes d'achat",
+    "receptions": "Réceptions",
+    "newReception": "Nouvelle réception",
+    "kindSupplier": "Achat fournisseur",
+    "kindCooperative": "Réception coopérative (bouteilles)",
+    "kindOpening": "Stock d'ouverture",
+    "destination": "Emplacement de destination",
+    "cooperativeSource": "Emplacement coopérative (source des étiquettes)",
+    "costIncludesLabel": "Le coût saisi inclut déjà l'étiquette",
+    "unitCost": "Coût unitaire",
+    "eventDate": "Date de l'événement",
+    "insufficientLabels": "Étiquettes insuffisantes : {available} disponibles chez la coopérative, {required} requises pour {label}. Réception bloquée intégralement, aucune écriture effectuée.",
+    "noLabelMapping": "Aucune étiquette n'est associée à ce produit dans les paramètres. Réception bloquée.",
+    "ambiguousLabelMapping": "Plusieurs étiquettes sont associées à ce produit. Corrigez le paramétrage avant de continuer.",
+    "receptionCreated": "Réception enregistrée."
+  },
+  "cooperativeTransfers": {
+    "title": "Transferts vers la coopérative",
+    "new": "Nouveau transfert",
+    "from": "Depuis",
+    "to": "Vers",
+    "created": "Transfert enregistré."
+  },
+  "inventory": {
+    "title": "Inventaires et mouvements",
+    "movementsLog": "Journal des mouvements",
+    "onHandByLocation": "Stock disponible par emplacement",
+    "type": "Type de mouvement",
+    "movementOpening": "Ouverture",
+    "movementPurchaseReception": "Réception achat",
+    "movementCooperativeTransferOut": "Transfert sortant (coopérative)",
+    "movementCooperativeTransferIn": "Transfert entrant (coopérative)",
+    "movementLabelConsumption": "Consommation étiquette",
+    "movementCooperativeReception": "Réception coopérative (produit)",
+    "movementCorrection": "Correction"
+  },
+  "settings": {
+    "title": "Paramètres et utilisateurs",
+    "language": "Langue",
+    "french": "Français",
+    "arabic": "العربية"
+  },
+  "roles": {
+    "OWNER": "Propriétaire",
+    "STOCK": "Stock / préparation",
+    "CONFIRMATION": "Confirmation / suivi",
+    "FINANCE": "Finance",
+    "READONLY": "Lecture seule"
+  }
+}
