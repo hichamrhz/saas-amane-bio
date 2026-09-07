@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { listArticleVariants } from "@/lib/catalog/service";
 import { getOnHandAt } from "@/lib/inventory/stock";
 import { createReception } from "@/lib/purchasing/receptions";
+import { createOrder, OrderError } from "@/lib/orders/service";
 import { createTestContext, createProductVariant, createLabelVariant } from "./helpers/fixtures";
 
 describe("isolation par organisation (cahier des charges §19, test d'acceptation #28)", () => {
@@ -48,5 +49,41 @@ describe("isolation par organisation (cahier des charges §19, test d'acceptatio
 
     const asSeenFromOrgA = await getOnHandAt(orgA.organizationId, labelA.id, orgA.internal.id);
     expect(asSeenFromOrgA.toString()).toBe("100");
+  });
+
+  it("une commande ne peut pas référencer l'emplacement ou les articles d'une autre organisation", async () => {
+    const orgA = await createTestContext();
+    const orgB = await createTestContext();
+
+    const productB = await createProductVariant(orgB.organizationId, {
+      name: "Produit B",
+      sku: `XB-${randomUUID().slice(0, 6)}`,
+    });
+
+    // Org B's location, referenced from an order created under org A.
+    await expect(
+      createOrder({
+        organizationId: orgA.organizationId,
+        userId: orgA.userId,
+        channel: "WHATSAPP",
+        locationId: orgB.internal.id,
+        placedAt: new Date(),
+        lines: [{ articleVariantId: productB.id, quantity: "1", unitPrice: "10" }],
+      })
+    ).rejects.toBeInstanceOf(OrderError);
+
+    // Org B's product, referenced from an order that otherwise uses org A's
+    // own location — the article-variant check must catch it independently
+    // of the location check.
+    await expect(
+      createOrder({
+        organizationId: orgA.organizationId,
+        userId: orgA.userId,
+        channel: "WHATSAPP",
+        locationId: orgA.internal.id,
+        placedAt: new Date(),
+        lines: [{ articleVariantId: productB.id, quantity: "1", unitPrice: "10" }],
+      })
+    ).rejects.toBeInstanceOf(OrderError);
   });
 });

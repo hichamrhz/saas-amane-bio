@@ -26,6 +26,7 @@ export async function createRecipe(input: CreateRecipeInput) {
   if (input.components.length === 0) {
     throw new RecipeError("Une recette doit avoir au moins un composant.");
   }
+  await assertComponentsBelongToOrg(input.organizationId, input.components);
 
   return prisma.recipe.create({
     data: {
@@ -70,6 +71,7 @@ export async function addRecipeVersion(input: {
   if (input.components.length === 0) {
     throw new RecipeError("Une recette doit avoir au moins un composant.");
   }
+  await assertComponentsBelongToOrg(input.organizationId, input.components);
 
   const nextVersion = (recipe.versions[0]?.version ?? 0) + 1;
   return prisma.recipeVersion.create({
@@ -88,6 +90,23 @@ export async function addRecipeVersion(input: {
     },
     include: { components: true },
   });
+}
+
+/** Recipe components have no organizationId column of their own — they
+ * trust the referenced ArticleVariant's own org. Without this check, a
+ * caller could point a component at another organization's consumable;
+ * downstream stock checks would just see "0 available" for that org-scoped
+ * ledger (no actual cross-org leak or corruption), but confirmation would
+ * fail confusingly instead of at the real source of the mistake. */
+async function assertComponentsBelongToOrg(
+  organizationId: string,
+  components: { articleVariantId: string }[]
+) {
+  const ids = [...new Set(components.map((c) => c.articleVariantId))];
+  const count = await prisma.articleVariant.count({ where: { id: { in: ids }, organizationId } });
+  if (count !== ids.length) {
+    throw new RecipeError("Un ou plusieurs composants n'appartiennent pas à cette organisation.");
+  }
 }
 
 export async function listRecipes(organizationId: string) {

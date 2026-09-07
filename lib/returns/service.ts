@@ -67,6 +67,16 @@ export async function declareReturn(input: {
     await tx.orderEvent.create({
       data: { orderId: order.id, fromStatus: order.status, toStatus: "RETURN_ANNOUNCED", createdById: input.userId },
     });
+    await tx.auditLog.create({
+      data: {
+        organizationId: input.organizationId,
+        userId: input.userId,
+        action: "return.declare",
+        entityType: "Return",
+        entityId: ret.id,
+        after: { orderId: order.id, lineCount: input.lines.length },
+      },
+    });
 
     return ret;
   });
@@ -205,6 +215,17 @@ export async function receiveReturnLines(input: {
         },
       });
     }
+
+    await tx.auditLog.create({
+      data: {
+        organizationId: input.organizationId,
+        userId: input.userId,
+        action: "return.receive",
+        entityType: "Return",
+        entityId: ret.id,
+        after: { status: newReturnStatus, lineCount: input.lines.length },
+      },
+    });
 
     return tx.return.findUniqueOrThrow({
       where: { id: ret.id },

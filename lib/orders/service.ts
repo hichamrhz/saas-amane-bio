@@ -59,6 +59,7 @@ export async function createOrder(input: CreateOrderInput) {
       throw new OrderError("INVALID_LINES", "Les quantités doivent être supérieures à zéro.");
     }
   }
+  await assertOrderReferencesBelongToOrg(input);
 
   if (input.clientRequestId) {
     const existing = await prisma.order.findUnique({
@@ -302,6 +303,10 @@ export async function shipOrder(
   input: { carrierId?: string | null; trackingNumber?: string | null }
 ) {
   return transitionOrder(organizationId, userId, orderId, ["CONFIRMED"], "SHIPPED", async (tx, order) => {
+    if (input.carrierId) {
+      const carrier = await tx.carrier.findFirst({ where: { id: input.carrierId, organizationId } });
+      if (!carrier) throw new OrderError("INVALID_LINES", "Transporteur invalide.");
+    }
     await tx.order.update({
       where: { id: order.id },
       data: {
@@ -478,6 +483,41 @@ export async function getOrderStatusCounts(organizationId: string): Promise<Reco
   const counts: Record<string, number> = {};
   for (const row of rows) counts[row.status] = row._count._all;
   return counts;
+}
+
+/** Every id the caller supplies (location, customer, carrier, article
+ * variants) must actually belong to this organization — foreign keys alone
+ * don't enforce that, and none of these are re-derived from the session,
+ * so this is the only thing standing between a legitimate request and one
+ * that references another organization's data (see cahier des charges
+ * §19, test d'acceptation #28). */
+async function assertOrderReferencesBelongToOrg(input: CreateOrderInput): Promise<void> {
+  const location = await prisma.location.findFirst({
+    where: { id: input.locationId, organizationId: input.organizationId },
+  });
+  if (!location) throw new OrderError("INVALID_LOCATION", "Emplacement de sortie invalide.");
+
+  if (input.customerId) {
+    const customer = await prisma.customer.findFirst({
+      where: { id: input.customerId, organizationId: input.organizationId },
+    });
+    if (!customer) throw new OrderError("INVALID_LINES", "Client invalide.");
+  }
+
+  if (input.carrierId) {
+    const carrier = await prisma.carrier.findFirst({
+      where: { id: input.carrierId, organizationId: input.organizationId },
+    });
+    if (!carrier) throw new OrderError("INVALID_LINES", "Transporteur invalide.");
+  }
+
+  const variantIds = [...new Set(input.lines.map((l) => l.articleVariantId))];
+  const count = await prisma.articleVariant.count({
+    where: { id: { in: variantIds }, organizationId: input.organizationId },
+  });
+  if (count !== variantIds.length) {
+    throw new OrderError("INVALID_LINES", "Un ou plusieurs articles sont invalides.");
+  }
 }
 
 function isUniqueConstraintError(error: unknown): boolean {
