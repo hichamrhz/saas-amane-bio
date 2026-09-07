@@ -1,5 +1,6 @@
 import Decimal from "decimal.js";
 import { prisma } from "@/lib/db/prisma";
+import type { Prisma } from "@/app/generated/prisma/client";
 
 /**
  * On-hand quantity is always derived by summing the immutable movement
@@ -98,7 +99,22 @@ export async function getOnHandAt(
   articleVariantId: string,
   locationId: string
 ): Promise<Decimal> {
-  const result = await prisma.stockMovement.aggregate({
+  return getOnHandAtInTx(prisma, organizationId, articleVariantId, locationId);
+}
+
+/**
+ * Same as `getOnHandAt`, but usable inside an interactive transaction (a
+ * `tx` client) so the read is consistent with uncommitted writes earlier in
+ * the same transaction — required for atomic stock checks (receptions,
+ * order confirmation, transfers).
+ */
+export async function getOnHandAtInTx(
+  client: Prisma.TransactionClient,
+  organizationId: string,
+  articleVariantId: string,
+  locationId: string
+): Promise<Decimal> {
+  const result = await client.stockMovement.aggregate({
     where: { organizationId, articleVariantId, locationId },
     _sum: { quantityDelta: true },
   });

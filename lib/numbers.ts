@@ -25,3 +25,13 @@ export function requireString(value: FormDataEntryValue | null): string | null {
   const trimmed = value.trim();
   return trimmed === "" ? null : trimmed;
 }
+
+/**
+ * Money is always displayed with exactly 2 decimals (cahier des charges
+ * §2), even though the underlying Decimal's own toString() normalizes away
+ * trailing zeros (e.g. "130.5" instead of "130.50"). Never use raw
+ * toString() for a monetary amount in the UI — always go through this.
+ */
+export function formatMoney(value: { toString(): string } | string | number): string {
+  return Number(value.toString()).toFixed(2);
+}
