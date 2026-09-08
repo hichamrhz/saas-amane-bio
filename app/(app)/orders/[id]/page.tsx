@@ -51,13 +51,13 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <section className="rounded-lg border border-neutral-200 bg-white p-4 text-sm">
+        <section className="rounded-lg border border-brand-100 bg-white p-4 text-sm">
           <h2 className="mb-2 font-semibold text-neutral-800">{t("detailCustomerTitle")}</h2>
           <p>{order.customer?.name ?? order.customerName ?? "—"}</p>
           <p>{order.customer?.phone ?? order.customerPhone ?? "—"}</p>
           <p>{order.deliveryAddress ?? "—"}</p>
         </section>
-        <section className="rounded-lg border border-neutral-200 bg-white p-4 text-sm">
+        <section className="rounded-lg border border-brand-100 bg-white p-4 text-sm">
           <h2 className="mb-2 font-semibold text-neutral-800">{t("detailAmountsTitle")}</h2>
           <p>
             {t("subtotal")} : {formatMoney(order.subtotalAmount)} MAD
@@ -74,9 +74,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         </section>
       </div>
 
-      <section className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
+      <section className="overflow-x-auto rounded-lg border border-brand-100 bg-white">
         <table className="w-full text-sm">
-          <thead className="bg-neutral-50 text-start text-xs uppercase text-neutral-500">
+          <thead className="bg-cream-dark/60 text-start text-xs uppercase text-neutral-500">
             <tr>
               <th className="px-4 py-2 font-medium">{t("tableProduct")}</th>
               <th className="px-4 py-2 font-medium">{t("tableQuantity")}</th>
@@ -140,7 +140,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         />
       )}
 
-      <section className="rounded-lg border border-neutral-200 bg-white p-4">
+      <section className="rounded-lg border border-brand-100 bg-white p-4">
         <h2 className="mb-3 text-sm font-semibold text-neutral-800">{t("historyTitle")}</h2>
         <ul className="flex flex-col gap-2 text-sm">
           {order.events.map((e) => (

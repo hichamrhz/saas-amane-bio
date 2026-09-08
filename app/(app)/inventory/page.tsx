@@ -17,9 +17,9 @@ export default async function InventoryPage() {
         <h2 className="text-sm font-semibold uppercase text-neutral-500">
           Stock disponible par emplacement
         </h2>
-        <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-brand-100 bg-white">
           <table className="w-full text-sm">
-            <thead className="bg-neutral-50 text-start text-xs uppercase text-neutral-500">
+            <thead className="bg-cream-dark/60 text-start text-xs uppercase text-neutral-500">
               <tr>
                 <Th>Article</Th>
                 <Th>Emplacement</Th>
@@ -55,9 +55,9 @@ export default async function InventoryPage() {
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold uppercase text-neutral-500">Journal des mouvements</h2>
-        <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-brand-100 bg-white">
           <table className="w-full text-sm">
-            <thead className="bg-neutral-50 text-start text-xs uppercase text-neutral-500">
+            <thead className="bg-cream-dark/60 text-start text-xs uppercase text-neutral-500">
               <tr>
                 <Th>Date</Th>
                 <Th>Type</Th>

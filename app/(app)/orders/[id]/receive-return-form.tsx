@@ -24,7 +24,7 @@ export function ReceiveReturnForm({
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-4">
+    <div className="rounded-lg border border-brand-100 bg-white p-4">
       <h3 className="mb-3 text-sm font-medium text-neutral-800">Réceptionner le retour</h3>
       <form
         className="flex flex-col gap-3"
@@ -77,7 +77,7 @@ export function ReceiveReturnForm({
         <button
           type="submit"
           disabled={isPending}
-          className="w-fit rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+          className="w-fit rounded-md bg-brand-700 px-3 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
         >
           Enregistrer la réception
         </button>

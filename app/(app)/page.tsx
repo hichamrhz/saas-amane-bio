@@ -46,9 +46,9 @@ export default async function DashboardPage() {
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-4">
+    <div className="rounded-lg border border-brand-100 bg-white p-4">
       <p className="text-xs uppercase tracking-wide text-neutral-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-neutral-900">{value}</p>
+      <p className="mt-1 text-2xl font-semibold text-brand-800">{value}</p>
     </div>
   );
 }

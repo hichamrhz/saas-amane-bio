@@ -17,7 +17,7 @@ export function RecipeForm({
   const [state, formAction, isPending] = useActionState<FormState, FormData>(createRecipeAction, undefined);
 
   return (
-    <details className="rounded-lg border border-neutral-200 bg-white p-4">
+    <details className="rounded-lg border border-brand-100 bg-white p-4">
       <summary className="cursor-pointer text-sm font-medium text-neutral-800">+ Nouvelle recette d&apos;emballage</summary>
       <form action={formAction} className="mt-4 flex flex-col gap-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
@@ -85,7 +85,7 @@ export function RecipeForm({
           <button
             type="submit"
             disabled={isPending}
-            className="rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+            className="rounded-md bg-brand-700 px-3 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
           >
             Créer
           </button>

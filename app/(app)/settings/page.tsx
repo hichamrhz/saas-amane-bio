@@ -19,14 +19,14 @@ export default async function SettingsPage() {
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold">{t("title")}</h1>
 
-      <section className="rounded-lg border border-neutral-200 bg-white p-4 text-sm">
+      <section className="rounded-lg border border-brand-100 bg-white p-4 text-sm">
         <h2 className="mb-2 font-semibold text-neutral-800">Organisation</h2>
         <p>Nom : {organization.name}</p>
         <p>Devise de reporting : {organization.currency}</p>
         <p>Fuseau horaire : {organization.timezone}</p>
       </section>
 
-      <section className="rounded-lg border border-neutral-200 bg-white p-4 text-sm">
+      <section className="rounded-lg border border-brand-100 bg-white p-4 text-sm">
         <h2 className="mb-2 font-semibold text-neutral-800">Utilisateurs</h2>
         <table className="w-full text-sm">
           <thead className="text-start text-xs uppercase text-neutral-500">

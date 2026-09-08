@@ -25,7 +25,7 @@ export function ReceptionForm({
   const today = new Date().toISOString().slice(0, 10);
 
   return (
-    <details className="rounded-lg border border-neutral-200 bg-white p-4" open>
+    <details className="rounded-lg border border-brand-100 bg-white p-4" open>
       <summary className="cursor-pointer text-sm font-medium text-neutral-800">{title}</summary>
       <form action={formAction} className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {kindOptions.length > 1 ? (
@@ -160,7 +160,7 @@ export function ReceptionForm({
           <button
             type="submit"
             disabled={isPending}
-            className="rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+            className="rounded-md bg-brand-700 px-3 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
           >
             Enregistrer la réception
           </button>

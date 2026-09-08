@@ -38,7 +38,7 @@ export function ActionButton({
         onClick={handleClick}
         className={
           className ??
-          "rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+          "rounded-md bg-brand-700 px-3 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
         }
       >
         {label}

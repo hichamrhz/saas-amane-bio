@@ -43,9 +43,9 @@ export default async function CooperativePage() {
           }))}
           locations={locations.map((l) => ({ id: l.id, name: l.name }))}
         />
-        <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-brand-100 bg-white">
           <table className="w-full text-sm">
-            <thead className="bg-neutral-50 text-start text-xs uppercase text-neutral-500">
+            <thead className="bg-cream-dark/60 text-start text-xs uppercase text-neutral-500">
               <tr>
                 <Th>Date</Th>
                 <Th>Article</Th>
@@ -94,9 +94,9 @@ export default async function CooperativePage() {
           }))}
           locations={locations.map((l) => ({ id: l.id, name: l.name, kind: l.kind }))}
         />
-        <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-brand-100 bg-white">
           <table className="w-full text-sm">
-            <thead className="bg-neutral-50 text-start text-xs uppercase text-neutral-500">
+            <thead className="bg-cream-dark/60 text-start text-xs uppercase text-neutral-500">
               <tr>
                 <Th>Date</Th>
                 <Th>Produit</Th>

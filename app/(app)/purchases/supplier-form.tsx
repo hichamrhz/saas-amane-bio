@@ -10,7 +10,7 @@ export function SupplierForm() {
   );
 
   return (
-    <details className="rounded-lg border border-neutral-200 bg-white p-4">
+    <details className="rounded-lg border border-brand-100 bg-white p-4">
       <summary className="cursor-pointer text-sm font-medium text-neutral-800">
         + Nouveau fournisseur
       </summary>
@@ -40,7 +40,7 @@ export function SupplierForm() {
           <button
             type="submit"
             disabled={isPending}
-            className="rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+            className="rounded-md bg-brand-700 px-3 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
           >
             Créer
           </button>

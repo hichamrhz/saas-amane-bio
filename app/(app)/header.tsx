@@ -8,7 +8,7 @@ export async function Header({ session }: { session: Session["user"] }) {
   const locale = await getLocale();
 
   return (
-    <header className="flex items-center justify-between border-b border-neutral-200 bg-white px-6 py-3">
+    <header className="flex items-center justify-between border-b border-brand-100 bg-white px-6 py-3">
       <div className="text-sm text-neutral-600">
         <p className="font-medium text-neutral-900">{session.name}</p>
         <p>
@@ -22,7 +22,7 @@ export async function Header({ session }: { session: Session["user"] }) {
             type="submit"
             name="locale"
             value="fr"
-            className={`rounded px-2 py-1 ${locale === "fr" ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600"}`}
+            className={`rounded px-2 py-1 ${locale === "fr" ? "bg-brand-700 text-white" : "bg-cream-dark text-neutral-600"}`}
           >
             {t("settings.french")}
           </button>
@@ -30,7 +30,7 @@ export async function Header({ session }: { session: Session["user"] }) {
             type="submit"
             name="locale"
             value="ar"
-            className={`rounded px-2 py-1 ${locale === "ar" ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600"}`}
+            className={`rounded px-2 py-1 ${locale === "ar" ? "bg-brand-700 text-white" : "bg-cream-dark text-neutral-600"}`}
           >
             {t("settings.arabic")}
           </button>
@@ -41,7 +41,7 @@ export async function Header({ session }: { session: Session["user"] }) {
             await signOut({ redirectTo: "/login" });
           }}
         >
-          <button type="submit" className="text-sm text-neutral-600 underline">
+          <button type="submit" className="text-sm text-neutral-600 underline hover:text-brand-700">
             {t("auth.signOut")}
           </button>
         </form>

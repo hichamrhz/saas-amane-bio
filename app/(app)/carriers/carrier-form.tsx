@@ -7,7 +7,7 @@ export function CarrierForm() {
   const [state, formAction, isPending] = useActionState<FormState, FormData>(createCarrierAction, undefined);
 
   return (
-    <details className="rounded-lg border border-neutral-200 bg-white p-4">
+    <details className="rounded-lg border border-brand-100 bg-white p-4">
       <summary className="cursor-pointer text-sm font-medium text-neutral-800">+ Nouveau transporteur</summary>
       <form action={formAction} className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <label className="flex flex-col gap-1 text-sm text-neutral-700">
@@ -31,7 +31,7 @@ export function CarrierForm() {
           <button
             type="submit"
             disabled={isPending}
-            className="rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+            className="rounded-md bg-brand-700 px-3 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
           >
             Créer
           </button>

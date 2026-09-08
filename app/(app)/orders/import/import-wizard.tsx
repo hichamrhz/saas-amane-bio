@@ -82,7 +82,7 @@ export function ImportWizard({ initialMapping }: { initialMapping: ColumnMapping
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="rounded-lg border border-neutral-200 bg-white p-4">
+      <section className="rounded-lg border border-brand-100 bg-white p-4">
         <h2 className="mb-2 text-sm font-semibold text-neutral-800">1. Coller ou charger le fichier</h2>
         <textarea
           value={pasteText}
@@ -95,7 +95,7 @@ export function ImportWizard({ initialMapping }: { initialMapping: ColumnMapping
           <button
             type="button"
             onClick={handlePasteAnalyze}
-            className="rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white"
+            className="rounded-md bg-brand-700 px-3 py-2 text-sm font-medium text-white hover:bg-brand-800"
           >
             Analyser le texte collé
           </button>
@@ -113,7 +113,7 @@ export function ImportWizard({ initialMapping }: { initialMapping: ColumnMapping
       </section>
 
       {rows && (
-        <section className="rounded-lg border border-neutral-200 bg-white p-4">
+        <section className="rounded-lg border border-brand-100 bg-white p-4">
           <h2 className="mb-2 text-sm font-semibold text-neutral-800">
             2. Faire correspondre les colonnes ({rows.length - 1} ligne(s) de données)
           </h2>
@@ -163,7 +163,7 @@ export function ImportWizard({ initialMapping }: { initialMapping: ColumnMapping
               type="button"
               disabled={isBusy}
               onClick={handlePreview}
-              className="rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+              className="rounded-md bg-brand-700 px-3 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
             >
               Prévisualiser
             </button>
@@ -174,7 +174,7 @@ export function ImportWizard({ initialMapping }: { initialMapping: ColumnMapping
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {preview && !summary && (
-        <section className="rounded-lg border border-neutral-200 bg-white p-4">
+        <section className="rounded-lg border border-brand-100 bg-white p-4">
           <h2 className="mb-2 text-sm font-semibold text-neutral-800">3. Aperçu ({preview.length} commande(s))</h2>
           <div className="max-h-96 overflow-y-auto">
             <table className="w-full text-sm">

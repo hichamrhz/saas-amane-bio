@@ -38,14 +38,14 @@ export default async function OrdersPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <Link href="/orders/import" className="rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white">
+        <Link href="/orders/import" className="rounded-md bg-brand-700 px-3 py-2 text-sm font-medium text-white hover:bg-brand-800">
           {t("importButton")}
         </Link>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         {kpis.map((k) => (
-          <div key={k.key} className="rounded-lg border border-neutral-200 bg-white p-4">
+          <div key={k.key} className="rounded-lg border border-brand-100 bg-white p-4">
             <p className="text-xs uppercase tracking-wide text-neutral-500">{k.label}</p>
             <p className="mt-1 text-2xl font-semibold text-neutral-900">{statusCounts[k.key] ?? 0}</p>
           </div>
@@ -57,9 +57,9 @@ export default async function OrdersPage() {
         locations={locations.map((l) => ({ id: l.id, name: l.name }))}
       />
 
-      <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
+      <div className="overflow-x-auto rounded-lg border border-brand-100 bg-white">
         <table className="w-full text-sm">
-          <thead className="bg-neutral-50 text-start text-xs uppercase text-neutral-500">
+          <thead className="bg-cream-dark/60 text-start text-xs uppercase text-neutral-500">
             <tr>
               <Th>{t("tableOrder")}</Th>
               <Th>{t("tableCustomer")}</Th>
