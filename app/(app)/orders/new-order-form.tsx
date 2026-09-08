@@ -5,13 +5,16 @@ import { createOrderAction, type FormState } from "./actions";
 
 type ArticleOption = { id: string; sku: string; label: string; articleName: string };
 type LocationOption = { id: string; name: string };
+type AffiliateOption = { id: string; name: string };
 
 export function NewOrderForm({
   products,
   locations,
+  affiliates,
 }: {
   products: ArticleOption[];
   locations: LocationOption[];
+  affiliates: AffiliateOption[];
 }) {
   const [state, formAction, isPending] = useActionState<FormState, FormData>(createOrderAction, undefined);
 
@@ -48,6 +51,17 @@ export function NewOrderForm({
               <option value="GOOGLE">Google</option>
               <option value="AFFILIATE">Affilié</option>
               <option value="OTHER">Autre</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-sm text-neutral-700">
+            Affilié (commission)
+            <select name="affiliateId" defaultValue="" className="rounded-md border border-neutral-300 px-3 py-2 text-sm">
+              <option value="">— Aucun —</option>
+              {affiliates.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
             </select>
           </label>
           <label className="flex flex-col gap-1 text-sm text-neutral-700">

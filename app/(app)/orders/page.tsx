@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/auth/rbac";
 import { listOrders, getOrderStatusCounts } from "@/lib/orders/service";
 import { listLocations } from "@/lib/purchasing/suppliers";
+import { listAffiliates } from "@/lib/team/service";
 import { prisma } from "@/lib/db/prisma";
 import { formatMoney } from "@/lib/numbers";
 import { ORDER_STATUS_COLORS } from "@/lib/orders/labels";
@@ -14,7 +15,7 @@ export default async function OrdersPage() {
   const tStatus = await getTranslations("orderStatus");
   const tChannel = await getTranslations("orderChannel");
 
-  const [orders, statusCounts, locations, products] = await Promise.all([
+  const [orders, statusCounts, locations, products, affiliates] = await Promise.all([
     listOrders(session.organizationId),
     getOrderStatusCounts(session.organizationId),
     listLocations(session.organizationId),
@@ -23,6 +24,7 @@ export default async function OrdersPage() {
       include: { article: true },
       orderBy: [{ article: { name: "asc" } }],
     }),
+    listAffiliates(session.organizationId),
   ]);
 
   const kpis: { key: string; label: string }[] = [
@@ -55,6 +57,7 @@ export default async function OrdersPage() {
       <NewOrderForm
         products={products.map((p) => ({ id: p.id, sku: p.sku, label: p.label, articleName: p.article.name }))}
         locations={locations.map((l) => ({ id: l.id, name: l.name }))}
+        affiliates={affiliates.map((a) => ({ id: a.id, name: a.name }))}
       />
 
       <div className="overflow-x-auto rounded-lg border border-brand-100 bg-white">

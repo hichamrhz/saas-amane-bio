@@ -69,6 +69,7 @@ export async function createOrderAction(_prev: FormState, formData: FormData): P
       deliveryAddress: requireString(formData.get("deliveryAddress")),
       channel: channelRaw as OrderChannel,
       marketingSource: (requireString(formData.get("marketingSource")) as MarketingSource) ?? "UNKNOWN",
+      affiliateId: requireString(formData.get("affiliateId")),
       locationId,
       withSalt: formData.get("withSalt") === "on",
       placedAt: new Date(),

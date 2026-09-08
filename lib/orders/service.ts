@@ -4,6 +4,7 @@ import { lockStockRow } from "@/lib/inventory/lock";
 import { getOnHandAtInTx } from "@/lib/inventory/stock";
 import { computeWeightedAverageCost } from "@/lib/inventory/valuation";
 import { resolvePackagingRecipe, computePackagingConsumption, RecipeResolutionError } from "@/lib/recipes/engine";
+import { accrueCommissionsForDeliveredOrder } from "@/lib/commissions/service";
 import { generateOrderNumber } from "./numbering";
 import type { Prisma } from "@/app/generated/prisma/client";
 import type { OrderChannel, MarketingSource, OrderStatus } from "@/app/generated/prisma/enums";
@@ -38,6 +39,7 @@ export type CreateOrderInput = {
   channel: OrderChannel;
   marketingSource?: MarketingSource;
   carrierId?: string | null;
+  affiliateId?: string | null;
   locationId: string;
   withSalt?: boolean;
   skipStockImpact?: boolean;
@@ -102,6 +104,7 @@ export async function createOrder(input: CreateOrderInput) {
         channel: input.channel,
         marketingSource: input.marketingSource ?? "UNKNOWN",
         carrierId: input.carrierId ?? null,
+        affiliateId: input.affiliateId ?? null,
         locationId: input.locationId,
         withSalt: input.withSalt ?? true,
         skipStockImpact: input.skipStockImpact ?? false,
@@ -322,6 +325,12 @@ export async function shipOrder(
 export async function deliverOrder(organizationId: string, userId: string, orderId: string) {
   return transitionOrder(organizationId, userId, orderId, ["CONFIRMED", "SHIPPED"], "DELIVERED", async (tx, order) => {
     await tx.order.update({ where: { id: order.id }, data: { status: "DELIVERED", deliveredAt: new Date() } });
+    await accrueCommissionsForDeliveredOrder(
+      tx,
+      organizationId,
+      { id: order.id, placedAt: order.placedAt, subtotalAmount: order.subtotalAmount, affiliateId: order.affiliateId },
+      userId
+    );
   });
 }
 
@@ -509,6 +518,13 @@ async function assertOrderReferencesBelongToOrg(input: CreateOrderInput): Promis
       where: { id: input.carrierId, organizationId: input.organizationId },
     });
     if (!carrier) throw new OrderError("INVALID_LINES", "Transporteur invalide.");
+  }
+
+  if (input.affiliateId) {
+    const affiliate = await prisma.affiliate.findFirst({
+      where: { id: input.affiliateId, organizationId: input.organizationId },
+    });
+    if (!affiliate) throw new OrderError("INVALID_LINES", "Affilié invalide.");
   }
 
   const variantIds = [...new Set(input.lines.map((l) => l.articleVariantId))];

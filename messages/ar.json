@@ -294,5 +294,58 @@
     "tableTracking": "التتبع",
     "tableDeliveryFee": "رسوم التوصيل",
     "emptyOrders": "لا توجد طلبات مرتبطة بناقل حاليًا."
+  },
+  "team": {
+    "title": "الفريق والمسوقون بالعمولة",
+    "description": "دبّر المسوقين الخارجيين وتعريفات العمولة المؤرَّخة لكل شخص ولكل دور. لا تُستحق العمولة إلا عند تسليم الطلب — راجع صفحة العمولات والمدفوعات.",
+    "teamMembers": "أعضاء الفريق",
+    "affiliates": "المسوقون بالعمولة",
+    "commissionRules": "تعريفات العمولة",
+    "newAffiliate": "مسوّق جديد",
+    "newCommissionRule": "تعريف عمولة جديد",
+    "payeeType": "نوع المستفيد",
+    "payeeUser": "عضو من الفريق",
+    "payeeAffiliate": "مسوّق بالعمولة",
+    "teamMember": "عضو من الفريق",
+    "affiliate": "مسوّق بالعمولة",
+    "role": "الدور",
+    "rateTypeLabel": "نوع التعريفة",
+    "rateValue": "قيمة التعريفة",
+    "effectiveFrom": "سارية ابتداءً من",
+    "emptyAffiliates": "لا يوجد أي مسوّق بالعمولة حاليًا.",
+    "emptyRules": "لا يوجد أي تعريف عمولة حاليًا.",
+    "roleKind": {
+      "CONFIRMATION": "التأكيد",
+      "DELIVERY": "التسليم",
+      "AFFILIATE_REFERRAL": "إحالة مسوّق",
+      "FIXED_SALARY": "أجر شهري ثابت"
+    },
+    "rateType": {
+      "FIXED_PER_ORDER": "مبلغ ثابت لكل طلب (MAD)",
+      "PERCENT_OF_SUBTOTAL": "نسبة من المجموع الفرعي (%)",
+      "FIXED_PER_MONTH": "مبلغ شهري ثابت (MAD)"
+    }
+  },
+  "commissions": {
+    "title": "العمولات والمدفوعات",
+    "description": "لا تُمنح العمولة إلا عند تسليم الطلب (وليس عند التأكيد أو الشحن)، بالتعريفة السارية وقت الطلب. لا يغيّر أي دفع المبلغ المستحق أبدًا: يُحسب الرصيد دائمًا بطرح المدفوعات من إجمالي العمولات الممنوحة.",
+    "balances": "الأرصدة",
+    "earned": "المستحق (الممنوح)",
+    "paid": "المدفوع",
+    "balance": "الرصيد",
+    "emptyBalances": "لا توجد أي عمولة أو دفعة حاليًا.",
+    "payments": "المدفوعات",
+    "newPayment": "دفعة جديدة",
+    "amount": "المبلغ",
+    "paidAt": "تاريخ الدفع",
+    "emptyPayments": "لا توجد أي دفعة حاليًا.",
+    "fixedSalary": "الأجر الشهري الثابت",
+    "generateFixedSalary": "توليد أجر شهري ثابت",
+    "month": "الشهر",
+    "year": "السنة",
+    "generate": "توليد",
+    "commissionLedger": "سجل العمولات",
+    "order": "الطلب",
+    "emptyCommissions": "لا توجد أي عمولة ممنوحة حاليًا."
   }
 }

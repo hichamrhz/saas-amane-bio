@@ -1,6 +1,6 @@
 # PROGRESS — AMANE BIO
 
-État au terme de cette session (Phase 3). Voir `ARCHITECTURE.md` pour le
+État au terme de cette session (Phase 4). Voir `ARCHITECTURE.md` pour le
 plan et le modèle d'événements. Ce document liste précisément ce qui est
 fait, testé, et ce qui reste — pour reprendre sans reconstruire (§22 du
 cahier des charges).
@@ -121,26 +121,65 @@ cahier des charges).
   (commandes, recettes, retours, transporteurs, tableau de bord) — voir
   limites connues (§4) pour les formulaires encore FR uniquement.
 
+**Phase 4 — Équipe / Affiliés / Commissions / Paiements**
+- **Modèle** (`lib/team/`, `lib/commissions/`, pages `/team` et
+  `/commissions`) : une commission est une ligne de journal immuable (même
+  philosophie que `StockMovement`) créée **uniquement à la livraison** de
+  la commande (jamais à la confirmation ni à l'expédition — test
+  d'acceptation §21 #17). Le "dû" d'une personne se dérive en sommant ses
+  `Commission.amount` ; le "payé" se dérive en sommant ses `Payment.amount` ;
+  un versement ne modifie jamais le dû (test #20).
+- **Tarifs datés** (`CommissionRule`) : chaque nouvelle ligne est une
+  nouvelle version datée (même principe que `RecipeVersion`) — modifier un
+  tarif n'altère jamais l'historique. Le tarif appliqué à la livraison est
+  celui en vigueur à la date de **passation** de la commande
+  (`order.placedAt`), jamais un tarif plus récent appliqué rétroactivement
+  (test #18).
+- **Cumul de rôles** natif (test #18) : une même personne peut avoir
+  plusieurs `CommissionRule` (une par rôle — `CONFIRMATION`, `DELIVERY`,
+  `FIXED_SALARY`) et donc plusieurs commissions distinctes sur une même
+  commande si elle l'a par exemple confirmée **et** livrée.
+- **Affiliés** (`Affiliate`, `Order.affiliateId`) : un affilié externe
+  référencé sur une commande accumule sa propre commission
+  (`AFFILIATE_REFERRAL`, en % du sous-total ou montant fixe) en plus des
+  commissions internes de l'équipe sur la même commande (test #19).
+- **Paiements** (`Payment`) : versements partiels, solde toujours dérivé
+  (jamais un compteur muté) — 80×5=400 dus, 300 payés → solde 100, mais le
+  dû reste 400, jamais recalculé (test #20).
+- **Fixe mensuel** (`roleKind = FIXED_SALARY`) : génération idempotente
+  par personne et par mois, garantie par une contrainte d'unicité en base
+  (`organizationId, payeeId, roleKind, periodYear, periodMonth`) — générer
+  deux fois le même mois pour la même personne échoue explicitement
+  (test #21).
+- **Sécurité multi-tenant** : `affiliateId`, `userId` et `commissionRuleId`
+  sont systématiquement vérifiés comme appartenant à l'organisation de
+  l'appelant avant toute écriture, même pattern que le reste de
+  l'application.
+- Interface FR/AR RTL complète pour `/team` et `/commissions`.
+- Ce module ne crée pas de compte de connexion : les "membres de l'équipe"
+  éligibles à une commission restent les `User` déjà existants (créés via
+  le seed) — la création/édition d'utilisateurs depuis `/settings` reste
+  hors périmètre (voir §3).
+
 **Coquille applicative**
 - Navigation complète des 15 pages du cahier des charges. Recettes,
-  commandes, retours et transporteurs sont maintenant pleinement
-  implémentés (`lib/nav.ts`). Les pages encore non développées (`équipe`,
-  `commissions`, `dépenses`, `rapports`) affichent un message explicite
-  "fonctionnalité à venir" — jamais de données inventées ni de faux
-  graphique.
+  commandes, retours, transporteurs, équipe et commissions sont maintenant
+  pleinement implémentés (`lib/nav.ts`). Les pages encore non développées
+  (`dépenses`, `rapports`) affichent un message explicite "fonctionnalité
+  à venir" — jamais de données inventées ni de faux graphique.
 - `/settings` affiche l'organisation et les utilisateurs réels (édition non
   implémentée).
 
 ## 2. Tests exécutés
 
 ```
-pnpm test       # Vitest — 48 tests, vraie base Postgres de test
-pnpm test:e2e   # Playwright — 4 parcours, vrai navigateur, vraie DB dev
+pnpm test       # Vitest — 56 tests, vraie base Postgres de test
+pnpm test:e2e   # Playwright — 5 parcours, vrai navigateur, vraie DB dev
 pnpm build      # next build — compile et type-check sans erreur
 npx eslint .    # aucune erreur
 ```
 
-Tous passent au moment de la rédaction (48/48 Vitest, 4/4 Playwright,
+Tous passent au moment de la rédaction (56/56 Vitest, 5/5 Playwright,
 build et lint propres). Correspondance avec les 30 tests d'acceptation
 obligatoires du cahier des charges (§21) :
 
@@ -156,20 +195,20 @@ obligatoires du cahier des charges (§21) :
 | 8 | Confirmed : sortie unique malgré double clic/retry/réimport | ✅ Réussi | `tests/orders.core.test.ts` (double confirmation concurrente via `Promise.all`), `tests/imports.core.test.ts` (ré-import idempotent) |
 | 9 | Composant manquant : aucune sortie partielle | ✅ Réussi | `tests/orders.core.test.ts` — stock produit ou emballage insuffisant bloque toute la transaction |
 | 10 | Deux validations concurrentes, dernier stock : une seule réussit | ✅ Réussi | `tests/receptions.concurrency.test.ts` |
-| 11 | Livrée : pas de second retrait, revenu/commissions une fois | ✅ Partiel | Pas de second retrait de stock prouvé (`tests/orders.core.test.ts`, transitions `SHIPPED`→`DELIVERED` ne touchent pas le stock) ; commissions non construites (phase 5) |
+| 11 | Livrée : pas de second retrait, revenu/commissions une fois | ✅ Réussi | Pas de second retrait de stock (`tests/orders.core.test.ts`, `SHIPPED`→`DELIVERED` ne touche pas le stock) ; commissions accordées exactement une fois à la livraison, jamais à la confirmation/expédition (`tests/commissions.core.test.ts`) |
 | 12 | Ancien statut importé après Livrée : pas de régression | ✅ Réussi | `tests/imports.core.test.ts` — garde `STATUS_RANK`, un import ne peut jamais faire reculer une commande |
 | 13 | Commande inconnue importée Livrée : résolution explicite | ✅ Réussi | `tests/imports.core.test.ts` — `DELIVERED` sans recette résolvable → ligne marquée en résolution, jamais de sortie de stock inventée |
 | 14 | Import historique / stock d'ouverture : pas de retrait rétroactif | ✅ Réussi | `tests/receptions.core.test.ts`, `tests/imports.core.test.ts` (`skipStockImpact`) |
 | 15 | Retour annoncé : zéro réintégration ; 2/3 saines → +2, 1 écart | ✅ Réussi | `tests/returns.core.test.ts` |
 | 16 | Retour répété/partiel : pas de double réintégration | ✅ Réussi | `tests/returns.core.test.ts` |
-| 17 | Commissions multi-rôles, dues à la livraison seulement | ⏸ Non exécuté | Commissions non construites (phase 5) |
-| 18 | Cumul de rôles configurable ; tarif daté | ⏸ Non exécuté | Idem |
-| 19 | Affilié + commissions internes cumulées | ⏸ Non exécuté | Idem |
-| 20 | 80×5=400 dus, paiement 300, solde 100, charge=400 pas 700 | ⏸ Non exécuté | Paiements non construits (phase 5) |
-| 21 | Fixe mensuel : génération unique | ⏸ Non exécuté | Idem |
+| 17 | Commissions multi-rôles, dues à la livraison seulement | ✅ Réussi | `tests/commissions.core.test.ts` — zéro commission créée à la confirmation, deux rôles crédités à la livraison |
+| 18 | Cumul de rôles configurable ; tarif daté | ✅ Réussi | `tests/commissions.core.test.ts` — une même personne confirmant et livrant cumule les deux commissions ; un tarif plus récent n'est jamais appliqué rétroactivement à une commande déjà passée |
+| 19 | Affilié + commissions internes cumulées | ✅ Réussi | `tests/commissions.core.test.ts`, `e2e/commissions.spec.ts` — commission d'affilié (% du sous-total) accordée en plus de la commission de confirmation sur la même commande |
+| 20 | 80×5=400 dus, paiement 300, solde 100, charge=400 pas 700 | ✅ Réussi | `tests/commissions.core.test.ts`, `e2e/commissions.spec.ts` — solde toujours dérivé de deux journaux indépendants, jamais un compteur muté |
+| 21 | Fixe mensuel : génération unique | ✅ Réussi | `tests/commissions.core.test.ts` — génération idempotente garantie par contrainte d'unicité en base (personne + mois), une deuxième génération pour le même mois échoue explicitement |
 | 22 | Achat 1000/vente 100 : coût reconnu, reste valorisé | ✅ Partiel | Coût moyen pondéré construit et testé (`tests/cost-incorporation.test.ts`) ; la sortie de stock à la confirmation fige le coût du mouvement (`unitCost`) mais aucun état de résultat/COGS agrégé n'est encore calculé (phase 6) |
 | 23 | Changement prix/recette n'altère pas l'historique | ✅ Réussi | Chaque `OrderLine`/`StockMovement` fige son propre prix/coût ; chaque commande confirmée référence la `RecipeVersion` exacte utilisée — `tests/orders.core.test.ts` (une commande confirmée avec une ancienne version de recette n'est jamais recalculée si la recette est éditée ensuite) |
-| 24 | Versement COD 900/1000, frais 100 : rapprochement zéro | ⏸ Non exécuté | Le montant COD et les frais de livraison sont enregistrés par commande (`/carriers`), mais le rapprochement de relevé transporteur (import de versements, écarts) n'est pas construit (phase 4/5) |
+| 24 | Versement COD 900/1000, frais 100 : rapprochement zéro | ⏸ Non exécuté | Le montant COD et les frais de livraison sont enregistrés par commande (`/carriers`), mais le rapprochement de relevé transporteur (import de versements, écarts) n'est pas construit |
 | 25 | Copier-coller virgules, téléphone 0, plusieurs lignes | ✅ Réussi | `tests/imports.core.test.ts` — décimales à virgule, téléphone avec zéro initial, regroupement multi-lignes par numéro de commande |
 | 26 | Import interrompu et repris : atomique, sans doublon | ✅ Réussi | `tests/imports.core.test.ts` — traitement résilient par lot, ré-import idempotent |
 | 27 | Division par zéro, coûts manquants, cohortes honnêtes | ⏸ Non exécuté | Rapports/alertes non construits (phase 7). Le tableau de bord actuel n'affiche que des compteurs réels (dont les KPI de statut de commande), jamais de zéro déguisé |
@@ -177,28 +216,31 @@ obligatoires du cahier des charges (§21) :
 | 29 | Sauvegarde/restauration cohérente | ⏸ Non exécuté | Aucun service de sauvegarde automatique n'est configuré dans cet environnement — voir §4 ci-dessous |
 | 30 | Interface téléphone et arabe RTL utilisables | ✅ Partiel | RTL + bascule de langue vérifiés en e2e (`e2e/auth.spec.ts`) ; les pages de lecture/statut Phase 3 sont traduites FR/AR, mais certains formulaires (création de commande, assistant d'import, réception de retour) restent en français uniquement — voir §4. La barre latérale ne se replie pas encore sur petit écran |
 
-**Résumé** : 21 réussis, 3 partiels (le mécanisme central est prouvé, la
-fonctionnalité de surface qui l'exploite pleinement reste à construire), 6
+**Résumé** : 23 réussis, 2 partiels (le mécanisme central est prouvé, la
+fonctionnalité de surface qui l'exploite pleinement reste à construire), 5
 non exécutés car leur fonctionnalité n'existe pas encore (découpe métrique,
-commissions/paiements, rapprochement COD complet, alertes/rapports,
-sauvegarde). Aucun test n'a été présenté comme réussi sans l'être.
+rapprochement COD complet, alertes/rapports, sauvegarde). Aucun test n'a
+été présenté comme réussi sans l'être.
 
-## 3. Ce qui manque (phases 4 à 8, non commencées)
+## 3. Ce qui manque (phases 5 à 8, non commencées)
 
 - **Découpe métrique des consommables** (§7, tests #4-5) : calcul de perte
   de découpe pour papier bulle/ruban vendus au mètre/à la largeur, avec
   reste valorisé. Le moteur de recette actuel gère les quantités
   par bouteille/colis/commande, pas la découpe géométrique.
 - **Rapprochement COD complet** (§15, test #24) : import de relevés
-  transporteur, calcul d'écart entre COD attendu et versé.
-- **Équipe, affiliés, commissions, paiements** (§11-13) : règles datées,
-  cumul de rôles, séparation charge/paiement, commissions dues à la
-  livraison uniquement.
+  transporteur, calcul d'écart entre COD attendu et versé. Le montant COD
+  par commande existe déjà (`/carriers`) ; seul le rapprochement de relevé
+  manque.
 - **Dépenses et rentabilité** (§14, §16) : publicité, charges récurrentes,
-  état de résultat de période (COGS agrégé, marge).
+  état de résultat de période (COGS agrégé, marge). Peut maintenant
+  s'appuyer sur le journal `Commission` (Phase 4) comme source de charges
+  de personnel.
 - **Alertes et rapports réels** (§17) : taux de confirmation/livraison,
   réapprovisionnement, capacité de préparation.
-- Édition d'utilisateurs depuis `/settings` (lecture seule pour l'instant).
+- Édition d'utilisateurs depuis `/settings` (lecture seule pour l'instant) —
+  Phase 4 ajoute des tarifs de commission par utilisateur existant, mais
+  ne crée toujours pas de nouveaux comptes de connexion.
 - Sidebar repliable sur mobile ; tests de viewport téléphone.
 - Export CSV du journal de mouvements et des rapports.
 - **i18n des formulaires Phase 3** : les pages de lecture (`/orders`,
@@ -211,8 +253,8 @@ sauvegarde). Aucun test n'a été présenté comme réussi sans l'être.
 Ces tables ne sont volontairement pas créées à l'avance dans le schéma —
 les créer sans la logique qui les remplit serait du code mort. Les
 extensions futures (nouvelles valeurs d'enum, nouvelles tables
-`Expense`, `Commission`, `Payment`, `CarrierStatement`, etc.) sont
-additives et non destructives pour les données déjà en place.
+`Expense`, `CarrierStatement`, etc.) sont additives et non destructives
+pour les données déjà en place.
 
 ## 4. Limites connues et infrastructure requise
 
@@ -257,8 +299,8 @@ Pour les tests automatisés :
 ```bash
 cp .env.test.example .env.test   # même base que TEST_DATABASE_URL dans .env
 pnpm db:push:test                 # applique le schéma à la base de test (une fois)
-pnpm test                         # Vitest — 48 tests
-pnpm test:e2e                     # Playwright — 4 parcours, nécessite `pnpm dev` lancé à part
+pnpm test                         # Vitest — 56 tests
+pnpm test:e2e                     # Playwright — 5 parcours, nécessite `pnpm dev` lancé à part
 ```
 
 `pnpm db:push:test` et `pnpm db:migrate` modifient un schéma de base de
@@ -281,5 +323,13 @@ CSV colle-copier est vérifié séparément de bout en bout
 (`e2e/import.spec.ts`) : coller un CSV → mapper les colonnes → prévisualiser
 → confirmer → vérifier que la commande est créée.
 
-La suite (commissions, paiements, rapprochement COD, rapports) n'est pas
+La boucle Phase 4 est vérifiée de bout en bout (`e2e/commissions.spec.ts`) :
+créer un affilié → lui configurer un tarif de commission (% du sous-total)
+→ créer une commande qui le référence → la confirmer → l'expédier → la
+livrer → vérifier que la commission apparaît dans le journal et dans le
+solde de l'affilié, exactement au montant attendu → enregistrer un
+versement partiel → vérifier que le solde diminue sans jamais changer le
+montant accordé.
+
+La suite (rapprochement COD, dépenses/rentabilité, rapports) n'est pas
 encore construite — voir §3.

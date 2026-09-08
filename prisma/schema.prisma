@@ -54,6 +54,10 @@ model Organization {
   orders               Order[]
   returns              Return[]
   importBatches        ImportBatch[]
+  affiliates           Affiliate[]
+  commissionRules      CommissionRule[]
+  commissions          Commission[]
+  payments             Payment[]
 }
 
 model User {
@@ -77,6 +81,12 @@ model User {
   returnsCreated       Return[]              @relation("ReturnCreatedBy")
   returnReceiptLines   ReturnReceiptLine[]   @relation("ReturnReceiptOperator")
   importBatches        ImportBatch[]         @relation("ImportBatchCreatedBy")
+  commissionRulesOwned CommissionRule[]      @relation("CommissionRuleForUser")
+  commissionRulesMade  CommissionRule[]      @relation("CommissionRuleCreatedBy")
+  commissionsEarned    Commission[]          @relation("CommissionForUser")
+  paymentsReceived     Payment[]             @relation("PaymentForUser")
+  paymentsRecorded     Payment[]             @relation("PaymentCreatedBy")
+  affiliates           Affiliate[]
 
   @@index([organizationId])
 }
@@ -634,6 +644,12 @@ model Order {
   channel         OrderChannel
   marketingSource MarketingSource @default(UNKNOWN)
 
+  // Affilié externe crédité pour cette commande (commission §11-13) — distinct
+  // de marketingSource=AFFILIATE, qui ne fait que catégoriser la source sans
+  // forcément identifier la personne précise (ex: import historique).
+  affiliateId String?
+  affiliate   Affiliate? @relation(fields: [affiliateId], references: [id])
+
   carrierId      String?
   carrier        Carrier? @relation(fields: [carrierId], references: [id])
   trackingNumber String?
@@ -676,11 +692,13 @@ model Order {
   returns        Return[]
   importRows     ImportRow[]
   stockMovements StockMovement[]
+  commissions    Commission[]
 
   @@unique([organizationId, orderNumber])
   @@unique([organizationId, clientRequestId])
   @@index([organizationId])
   @@index([organizationId, status])
+  @@index([organizationId, affiliateId])
 }
 
 model OrderLine {
@@ -822,4 +840,163 @@ model ImportRow {
   order       Order?          @relation(fields: [orderId], references: [id])
 
   @@index([batchId])
+}
+
+// ---------------------------------------------------------------------------
+// Équipe, affiliés, commissions et paiements (Phase 4, §11-13)
+//
+// Modèle : une commission est une ligne de journal immuable (même
+// philosophie que StockMovement/ReturnReceiptLine) créée uniquement à la
+// livraison de la commande (jamais à la confirmation ou l'expédition —
+// test d'acceptation #17). Le "dû" total d'une personne se dérive en
+// sommant Commission.amount ; le "payé" se dérive en sommant Payment.amount.
+// Un versement n'altère jamais le dû (test #20). Le tarif appliqué est
+// celui en vigueur (CommissionRule.effectiveFrom) à la date de passation
+// de la commande (order.placedAt) — pas à la date de livraison — pour ne
+// jamais changer rétroactivement le tarif d'une commande déjà en cours.
+// Le cumul de rôles (test #18) est natif : une même personne peut avoir
+// plusieurs CommissionRule (une par rôle) et donc plusieurs Commission
+// distinctes pour une même commande (ex: elle l'a confirmée ET livrée).
+// ---------------------------------------------------------------------------
+
+enum PayeeType {
+  USER
+  AFFILIATE
+}
+
+enum CommissionRoleKind {
+  CONFIRMATION // personne qui a confirmé la commande
+  DELIVERY // personne qui l'a marquée livrée
+  AFFILIATE_REFERRAL // affilié externe ayant apporté la commande
+  FIXED_SALARY // fixe mensuel (test #21), non lié à une commande
+}
+
+enum CommissionRateType {
+  FIXED_PER_ORDER
+  PERCENT_OF_SUBTOTAL
+  FIXED_PER_MONTH
+}
+
+model Affiliate {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  phone          String?
+  status         UserStatus   @default(ACTIVE)
+  createdById    String
+  createdBy      User         @relation(fields: [createdById], references: [id])
+  createdAt      DateTime     @default(now())
+
+  orders          Order[]
+  commissionRules CommissionRule[]
+  commissions     Commission[]
+  payments        Payment[]
+
+  @@index([organizationId])
+}
+
+/// Une ligne = un tarif daté pour une personne et un rôle. Ajouter une
+/// nouvelle ligne pour changer un tarif ne modifie jamais l'historique :
+/// les commissions déjà accordées gardent leur commissionRuleId d'origine.
+model CommissionRule {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  payeeType   PayeeType
+  userId      String?
+  user        User?              @relation("CommissionRuleForUser", fields: [userId], references: [id])
+  affiliateId String?
+  affiliate   Affiliate?         @relation(fields: [affiliateId], references: [id])
+  roleKind    CommissionRoleKind
+
+  rateType      CommissionRateType
+  rateValue     Decimal            @db.Decimal(12, 4) // MAD si FIXED_*, points de % si PERCENT_OF_SUBTOTAL
+  effectiveFrom DateTime
+
+  createdById String
+  createdBy   User     @relation("CommissionRuleCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  commissions Commission[]
+
+  @@index([organizationId, userId, roleKind, effectiveFrom])
+  @@index([organizationId, affiliateId, roleKind, effectiveFrom])
+}
+
+/// Ligne de journal immuable : le "dû" d'une personne = somme de ses
+/// Commission.amount. Deux contraintes d'unicité assurent l'idempotence
+/// sans jamais se gêner l'une l'autre, grâce à la sémantique NULL de
+/// Postgres (deux NULL ne sont jamais considérés égaux dans un index
+/// unique) : orderId est toujours renseigné pour une commission liée à une
+/// commande (periodYear/Month restent NULL, donc jamais en conflit sur la
+/// 2e contrainte) ; periodYear/Month sont toujours renseignés pour un
+/// fixe mensuel (orderId reste NULL, donc jamais en conflit sur la 1re).
+/// payeeId duplique volontairement userId OU affiliateId (jamais les deux)
+/// dans une colonne non-nullable : userId/affiliateId sont TOUS LES DEUX
+/// nullables selon le type de bénéficiaire, et la sémantique NULL ci-dessus
+/// rendrait alors les deux contraintes inopérantes si l'une de leurs
+/// colonnes pouvait être NULL des deux côtés d'une comparaison.
+model Commission {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  payeeType   PayeeType
+  payeeId     String // = userId ou affiliateId, jamais NULL (voir note ci-dessus)
+  userId      String?
+  user        User?              @relation("CommissionForUser", fields: [userId], references: [id])
+  affiliateId String?
+  affiliate   Affiliate?         @relation(fields: [affiliateId], references: [id])
+  roleKind    CommissionRoleKind
+
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id])
+
+  commissionRuleId String?
+  commissionRule   CommissionRule? @relation(fields: [commissionRuleId], references: [id])
+
+  amount Decimal @db.Decimal(14, 2)
+
+  // Renseignés uniquement pour roleKind = FIXED_SALARY.
+  periodYear  Int?
+  periodMonth Int?
+
+  earnedAt  DateTime
+  createdAt DateTime @default(now())
+
+  @@unique([orderId, payeeId, roleKind])
+  @@unique([organizationId, payeeId, roleKind, periodYear, periodMonth])
+  @@index([organizationId, userId])
+  @@index([organizationId, affiliateId])
+}
+
+/// Ligne de journal immuable côté versements. balance(personne) = somme des
+/// Commission.amount - somme des Payment.amount, toujours dérivée, jamais
+/// un compteur muté (test #20 : payer 300 sur un dû de 400 laisse le dû à
+/// 400, pas un dû recalculé à 700).
+model Payment {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  payeeType   PayeeType
+  userId      String?
+  user        User?      @relation("PaymentForUser", fields: [userId], references: [id])
+  affiliateId String?
+  affiliate   Affiliate? @relation(fields: [affiliateId], references: [id])
+
+  amount          Decimal  @db.Decimal(14, 2)
+  paidAt          DateTime
+  notes           String?
+  clientRequestId String? // idempotence double-clic/retry réseau
+
+  createdById String
+  createdBy   User     @relation("PaymentCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@unique([organizationId, clientRequestId])
+  @@index([organizationId, userId])
+  @@index([organizationId, affiliateId])
 }

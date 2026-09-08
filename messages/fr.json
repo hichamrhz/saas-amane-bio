@@ -294,5 +294,58 @@
     "tableTracking": "Suivi",
     "tableDeliveryFee": "Frais de livraison",
     "emptyOrders": "Aucune commande affectée à un transporteur pour le moment."
+  },
+  "team": {
+    "title": "Équipe et affiliés",
+    "description": "Gérez les affiliés externes et les tarifs de commission datés par personne et par rôle. Une commission n'est due qu'à la livraison de la commande — voir la page Commissions et paiements.",
+    "teamMembers": "Membres de l'équipe",
+    "affiliates": "Affiliés",
+    "commissionRules": "Tarifs de commission",
+    "newAffiliate": "Nouvel affilié",
+    "newCommissionRule": "Nouveau tarif de commission",
+    "payeeType": "Type de bénéficiaire",
+    "payeeUser": "Membre de l'équipe",
+    "payeeAffiliate": "Affilié",
+    "teamMember": "Membre de l'équipe",
+    "affiliate": "Affilié",
+    "role": "Rôle",
+    "rateTypeLabel": "Type de tarif",
+    "rateValue": "Valeur du tarif",
+    "effectiveFrom": "En vigueur à partir du",
+    "emptyAffiliates": "Aucun affilié pour le moment.",
+    "emptyRules": "Aucun tarif de commission pour le moment.",
+    "roleKind": {
+      "CONFIRMATION": "Confirmation",
+      "DELIVERY": "Livraison",
+      "AFFILIATE_REFERRAL": "Apport d'affilié",
+      "FIXED_SALARY": "Fixe mensuel"
+    },
+    "rateType": {
+      "FIXED_PER_ORDER": "Montant fixe par commande (MAD)",
+      "PERCENT_OF_SUBTOTAL": "Pourcentage du sous-total (%)",
+      "FIXED_PER_MONTH": "Montant fixe mensuel (MAD)"
+    }
+  },
+  "commissions": {
+    "title": "Commissions et paiements",
+    "description": "Une commission est accordée uniquement à la livraison d'une commande (jamais à la confirmation ou l'expédition), au tarif en vigueur au moment de la commande. Un versement ne modifie jamais le montant dû : le solde se calcule toujours en soustrayant les versements du total accordé.",
+    "balances": "Soldes",
+    "earned": "Dû (accordé)",
+    "paid": "Payé",
+    "balance": "Solde",
+    "emptyBalances": "Aucune commission ni aucun versement pour le moment.",
+    "payments": "Versements",
+    "newPayment": "Nouveau versement",
+    "amount": "Montant",
+    "paidAt": "Date du versement",
+    "emptyPayments": "Aucun versement pour le moment.",
+    "fixedSalary": "Fixe mensuel",
+    "generateFixedSalary": "Générer un fixe mensuel",
+    "month": "Mois",
+    "year": "Année",
+    "generate": "Générer",
+    "commissionLedger": "Journal des commissions",
+    "order": "Commande",
+    "emptyCommissions": "Aucune commission accordée pour le moment."
   }
 }
