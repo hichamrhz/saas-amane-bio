@@ -1,6 +1,6 @@
 # PROGRESS — AMANE BIO
 
-État au terme de cette session (Phase 4). Voir `ARCHITECTURE.md` pour le
+État au terme de cette session (Phase 5). Voir `ARCHITECTURE.md` pour le
 plan et le modèle d'événements. Ce document liste précisément ce qui est
 fait, testé, et ce qui reste — pour reprendre sans reconstruire (§22 du
 cahier des charges).
@@ -161,25 +161,50 @@ cahier des charges).
   le seed) — la création/édition d'utilisateurs depuis `/settings` reste
   hors périmètre (voir §3).
 
+**Phase 5 — Dépenses / Publicité / Rapports**
+- **Dépenses** (`lib/expenses/`, page `/expenses`, §14) : saisie
+  journalière (publicité par plateforme Facebook/TikTok/Google, ou autre
+  charge libre). Charges récurrentes (abonnements, etc.) génération
+  idempotente par (clé de récurrence, année, mois), garantie par une
+  contrainte d'unicité en base — même pattern que le fixe mensuel de la
+  Phase 4.
+- **Rapports** (`lib/reports/`, page `/reports`, §16-17) :
+  - **Résultat de période** : chiffre d'affaires (commandes livrées dans
+    l'intervalle), coût des marchandises vendues (mouvements `ORDER_EXIT`
+    des mêmes commandes), commissions et dépenses de la période, marge
+    nette. Un mouvement de sortie sans coût unitaire enregistré est exclu
+    du calcul plutôt que traité comme zéro, et le nombre exact de
+    mouvements exclus est affiché — jamais un coût inventé (test
+    d'acceptation #27 : "coûts manquants").
+  - **Entonnoir de commandes** : taux de confirmation et de livraison sur
+    la période choisie. Quand il n'y a aucune commande sur la période, le
+    taux affiche explicitement "—", jamais un 0 % ni une division par
+    zéro (test #27).
+  - **Alertes de réapprovisionnement** : articles dont le stock disponible
+    passe sous un seuil saisi à la volée (aucun seuil de réapprovisionnement
+    n'existe encore dans le schéma — l'en inventer un silencieusement
+    aurait été la précision fabriquée que §17 met justement en garde
+    contre).
+  - Sélecteur de période (dates de début/fin) et de seuil, formulaire GET
+    simple, aucune donnée mutée par cette page.
+
 **Coquille applicative**
-- Navigation complète des 15 pages du cahier des charges. Recettes,
-  commandes, retours, transporteurs, équipe et commissions sont maintenant
-  pleinement implémentés (`lib/nav.ts`). Les pages encore non développées
-  (`dépenses`, `rapports`) affichent un message explicite "fonctionnalité
-  à venir" — jamais de données inventées ni de faux graphique.
+- Les 15 pages du cahier des charges sont maintenant **toutes**
+  implémentées (`lib/nav.ts`) : plus aucune ne reste au stade "fonctionnalité
+  à venir".
 - `/settings` affiche l'organisation et les utilisateurs réels (édition non
   implémentée).
 
 ## 2. Tests exécutés
 
 ```
-pnpm test       # Vitest — 56 tests, vraie base Postgres de test
+pnpm test       # Vitest — 62 tests, vraie base Postgres de test
 pnpm test:e2e   # Playwright — 5 parcours, vrai navigateur, vraie DB dev
 pnpm build      # next build — compile et type-check sans erreur
 npx eslint .    # aucune erreur
 ```
 
-Tous passent au moment de la rédaction (56/56 Vitest, 5/5 Playwright,
+Tous passent au moment de la rédaction (62/62 Vitest, 5/5 Playwright,
 build et lint propres). Correspondance avec les 30 tests d'acceptation
 obligatoires du cahier des charges (§21) :
 
@@ -206,23 +231,23 @@ obligatoires du cahier des charges (§21) :
 | 19 | Affilié + commissions internes cumulées | ✅ Réussi | `tests/commissions.core.test.ts`, `e2e/commissions.spec.ts` — commission d'affilié (% du sous-total) accordée en plus de la commission de confirmation sur la même commande |
 | 20 | 80×5=400 dus, paiement 300, solde 100, charge=400 pas 700 | ✅ Réussi | `tests/commissions.core.test.ts`, `e2e/commissions.spec.ts` — solde toujours dérivé de deux journaux indépendants, jamais un compteur muté |
 | 21 | Fixe mensuel : génération unique | ✅ Réussi | `tests/commissions.core.test.ts` — génération idempotente garantie par contrainte d'unicité en base (personne + mois), une deuxième génération pour le même mois échoue explicitement |
-| 22 | Achat 1000/vente 100 : coût reconnu, reste valorisé | ✅ Partiel | Coût moyen pondéré construit et testé (`tests/cost-incorporation.test.ts`) ; la sortie de stock à la confirmation fige le coût du mouvement (`unitCost`) mais aucun état de résultat/COGS agrégé n'est encore calculé (phase 6) |
+| 22 | Achat 1000/vente 100 : coût reconnu, reste valorisé | ✅ Réussi | Coût moyen pondéré construit et testé (`tests/cost-incorporation.test.ts`) ; le résultat de période (`/reports`, `tests/expenses-reports.core.test.ts`) agrège désormais le COGS réel des commandes livrées à partir de ces mêmes mouvements |
 | 23 | Changement prix/recette n'altère pas l'historique | ✅ Réussi | Chaque `OrderLine`/`StockMovement` fige son propre prix/coût ; chaque commande confirmée référence la `RecipeVersion` exacte utilisée — `tests/orders.core.test.ts` (une commande confirmée avec une ancienne version de recette n'est jamais recalculée si la recette est éditée ensuite) |
 | 24 | Versement COD 900/1000, frais 100 : rapprochement zéro | ⏸ Non exécuté | Le montant COD et les frais de livraison sont enregistrés par commande (`/carriers`), mais le rapprochement de relevé transporteur (import de versements, écarts) n'est pas construit |
 | 25 | Copier-coller virgules, téléphone 0, plusieurs lignes | ✅ Réussi | `tests/imports.core.test.ts` — décimales à virgule, téléphone avec zéro initial, regroupement multi-lignes par numéro de commande |
 | 26 | Import interrompu et repris : atomique, sans doublon | ✅ Réussi | `tests/imports.core.test.ts` — traitement résilient par lot, ré-import idempotent |
-| 27 | Division par zéro, coûts manquants, cohortes honnêtes | ⏸ Non exécuté | Rapports/alertes non construits (phase 7). Le tableau de bord actuel n'affiche que des compteurs réels (dont les KPI de statut de commande), jamais de zéro déguisé |
+| 27 | Division par zéro, coûts manquants, cohortes honnêtes | ✅ Réussi | `tests/expenses-reports.core.test.ts` — aucune commande sur la période : taux à `null` (jamais 0 % ni `NaN`) ; mouvement de sortie sans coût unitaire exclu du calcul et compté explicitement plutôt que traité comme zéro |
 | 28 | Rôle stock sans accès finance ; autre organisation inaccessible | ✅ Réussi | `tests/rbac.test.ts`, `tests/org-isolation.test.ts` (isolation catalogue, stock, **et commandes/emplacements/recettes** depuis Phase 3) |
 | 29 | Sauvegarde/restauration cohérente | ⏸ Non exécuté | Aucun service de sauvegarde automatique n'est configuré dans cet environnement — voir §4 ci-dessous |
 | 30 | Interface téléphone et arabe RTL utilisables | ✅ Partiel | RTL + bascule de langue vérifiés en e2e (`e2e/auth.spec.ts`) ; les pages de lecture/statut Phase 3 sont traduites FR/AR, mais certains formulaires (création de commande, assistant d'import, réception de retour) restent en français uniquement — voir §4. La barre latérale ne se replie pas encore sur petit écran |
 
-**Résumé** : 23 réussis, 2 partiels (le mécanisme central est prouvé, la
-fonctionnalité de surface qui l'exploite pleinement reste à construire), 5
+**Résumé** : 25 réussis, 1 partiel (le mécanisme central est prouvé, la
+fonctionnalité de surface qui l'exploite pleinement reste à construire), 4
 non exécutés car leur fonctionnalité n'existe pas encore (découpe métrique,
-rapprochement COD complet, alertes/rapports, sauvegarde). Aucun test n'a
-été présenté comme réussi sans l'être.
+rapprochement COD complet, sauvegarde). Aucun test n'a été présenté comme
+réussi sans l'être.
 
-## 3. Ce qui manque (phases 5 à 8, non commencées)
+## 3. Ce qui manque
 
 - **Découpe métrique des consommables** (§7, tests #4-5) : calcul de perte
   de découpe pour papier bulle/ruban vendus au mètre/à la largeur, avec
@@ -232,15 +257,18 @@ rapprochement COD complet, alertes/rapports, sauvegarde). Aucun test n'a
   transporteur, calcul d'écart entre COD attendu et versé. Le montant COD
   par commande existe déjà (`/carriers`) ; seul le rapprochement de relevé
   manque.
-- **Dépenses et rentabilité** (§14, §16) : publicité, charges récurrentes,
-  état de résultat de période (COGS agrégé, marge). Peut maintenant
-  s'appuyer sur le journal `Commission` (Phase 4) comme source de charges
-  de personnel.
-- **Alertes et rapports réels** (§17) : taux de confirmation/livraison,
-  réapprovisionnement, capacité de préparation.
+- **Capacité de préparation** (§17) : les rapports actuels couvrent le
+  résultat de période, l'entonnoir de confirmation/livraison et les
+  alertes de stock bas (seuil saisi à la volée) — une estimation de la
+  capacité de préparation (charge de travail à venir vs main d'œuvre
+  disponible) n'est pas construite.
 - Édition d'utilisateurs depuis `/settings` (lecture seule pour l'instant) —
   Phase 4 ajoute des tarifs de commission par utilisateur existant, mais
   ne crée toujours pas de nouveaux comptes de connexion.
+- **Seuil de réapprovisionnement persisté** : l'alerte de stock bas
+  (`/reports`) utilise un seuil saisi à chaque consultation, pas un seuil
+  configuré par article — aucun champ de ce type n'existe encore sur
+  `ArticleVariant`.
 - Sidebar repliable sur mobile ; tests de viewport téléphone.
 - Export CSV du journal de mouvements et des rapports.
 - **i18n des formulaires Phase 3** : les pages de lecture (`/orders`,
@@ -253,8 +281,8 @@ rapprochement COD complet, alertes/rapports, sauvegarde). Aucun test n'a
 Ces tables ne sont volontairement pas créées à l'avance dans le schéma —
 les créer sans la logique qui les remplit serait du code mort. Les
 extensions futures (nouvelles valeurs d'enum, nouvelles tables
-`Expense`, `CarrierStatement`, etc.) sont additives et non destructives
-pour les données déjà en place.
+`CarrierStatement`, etc.) sont additives et non destructives pour les
+données déjà en place.
 
 ## 4. Limites connues et infrastructure requise
 
@@ -299,7 +327,7 @@ Pour les tests automatisés :
 ```bash
 cp .env.test.example .env.test   # même base que TEST_DATABASE_URL dans .env
 pnpm db:push:test                 # applique le schéma à la base de test (une fois)
-pnpm test                         # Vitest — 56 tests
+pnpm test                         # Vitest — 62 tests
 pnpm test:e2e                     # Playwright — 5 parcours, nécessite `pnpm dev` lancé à part
 ```
 
@@ -331,5 +359,14 @@ solde de l'affilié, exactement au montant attendu → enregistrer un
 versement partiel → vérifier que le solde diminue sans jamais changer le
 montant accordé.
 
-La suite (rapprochement COD, dépenses/rentabilité, rapports) n'est pas
-encore construite — voir §3.
+La boucle Phase 5 (dépenses + rapports) est vérifiée par intégration
+(`tests/expenses-reports.core.test.ts`) : générer une charge récurrente
+deux fois pour le même mois échoue la deuxième fois ; une commande livrée
+dans la période produit un résultat de période exact (chiffre d'affaires,
+COGS, commissions, dépenses, marge nette) ; une période sans commande
+n'affiche jamais un taux calculé à partir d'une division par zéro ; un
+article sous le seuil choisi apparaît dans les alertes de stock bas, un
+article au-dessus n'y apparaît pas.
+
+La suite (rapprochement COD, découpe métrique, capacité de préparation)
+n'est pas encore construite — voir §3.

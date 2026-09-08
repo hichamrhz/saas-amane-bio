@@ -58,6 +58,7 @@ model Organization {
   commissionRules      CommissionRule[]
   commissions          Commission[]
   payments             Payment[]
+  expenses             Expense[]
 }
 
 model User {
@@ -87,6 +88,7 @@ model User {
   paymentsReceived     Payment[]             @relation("PaymentForUser")
   paymentsRecorded     Payment[]             @relation("PaymentCreatedBy")
   affiliates           Affiliate[]
+  expenses             Expense[]
 
   @@index([organizationId])
 }
@@ -999,4 +1001,51 @@ model Payment {
   @@unique([organizationId, clientRequestId])
   @@index([organizationId, userId])
   @@index([organizationId, affiliateId])
+}
+
+// ---------------------------------------------------------------------------
+// Dépenses et publicité (Phase 5, §14)
+// ---------------------------------------------------------------------------
+
+enum ExpenseCategory {
+  ADVERTISING
+  OTHER
+}
+
+enum AdPlatform {
+  FACEBOOK
+  TIKTOK
+  GOOGLE
+  OTHER
+}
+
+/// Une dépense ponctuelle a recurrenceKey/periodYear/periodMonth = NULL (la
+/// contrainte d'unicité ci-dessous ne s'applique alors jamais, par la même
+/// sémantique NULL de Postgres déjà exploitée pour Commission — sans le
+/// piège rencontré là-bas, car ici les trois colonnes sont toujours NULL ou
+/// toujours renseignées ensemble, jamais l'une sans l'autre). Une charge
+/// récurrente identifiée par recurrenceKey (ex: "abonnement-canva") ne peut
+/// être générée qu'une fois par (année, mois).
+model Expense {
+  id             String          @id @default(cuid())
+  organizationId String
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  category       ExpenseCategory
+  platform       AdPlatform? // renseigné uniquement si category = ADVERTISING
+  label          String? // texte libre, ex: "UGC créateur X", "Abonnement Canva"
+  amount         Decimal         @db.Decimal(14, 2)
+  eventDate      DateTime // jour réel de la dépense
+
+  recurrenceKey String?
+  periodYear    Int?
+  periodMonth   Int?
+
+  notes       String?
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@unique([organizationId, recurrenceKey, periodYear, periodMonth])
+  @@index([organizationId, eventDate])
+  @@index([organizationId, category])
 }

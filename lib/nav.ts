@@ -31,8 +31,8 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/carriers", messageKey: "carriers", implemented: true },
   { href: "/team", messageKey: "team", implemented: true },
   { href: "/commissions", messageKey: "commissions", implemented: true },
-  { href: "/expenses", messageKey: "expenses", implemented: false },
+  { href: "/expenses", messageKey: "expenses", implemented: true },
   { href: "/inventory", messageKey: "inventory", implemented: true },
-  { href: "/reports", messageKey: "reports", implemented: false },
+  { href: "/reports", messageKey: "reports", implemented: true },
   { href: "/settings", messageKey: "settings", implemented: true },
 ];
