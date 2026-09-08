@@ -53,6 +53,87 @@ export async function createProductVariant(organizationId: string, opts: { name:
   });
 }
 
+export async function createConsumableVariant(
+  organizationId: string,
+  opts: {
+    name: string;
+    sku: string;
+    consumableType: "CARTON" | "BUBBLE_WRAP" | "TAPE" | "SALT" | "SALT_SACHET" | "CARD" | "NOTICE" | "GIFT" | "OTHER";
+    isIntegerStock?: boolean;
+  }
+) {
+  const article = await prisma.article.create({
+    data: { organizationId, kind: "CONSUMABLE", consumableType: opts.consumableType, name: opts.name },
+  });
+  return prisma.articleVariant.create({
+    data: {
+      organizationId,
+      articleId: article.id,
+      sku: opts.sku,
+      label: "standard",
+      purchaseUnitLabel: "unité",
+      stockUnitLabel: "unité",
+      purchaseToStockFactor: "1",
+      isIntegerStock: opts.isIntegerStock ?? true,
+    },
+  });
+}
+
+/** Seeds opening stock directly via the ledger, bypassing the reception
+ * service — appropriate for test setup when the test is about the order
+ * engine, not about receptions (which have their own dedicated tests). */
+export async function seedOpeningStock(opts: {
+  organizationId: string;
+  userId: string;
+  articleVariantId: string;
+  locationId: string;
+  quantity: string;
+  unitCost: string;
+}) {
+  return prisma.stockMovement.create({
+    data: {
+      organizationId: opts.organizationId,
+      articleVariantId: opts.articleVariantId,
+      locationId: opts.locationId,
+      type: "OPENING",
+      quantityDelta: opts.quantity,
+      unitCost: opts.unitCost,
+      referenceType: "TestSeed",
+      referenceId: "seed",
+      eventDate: new Date(),
+      createdById: opts.userId,
+    },
+  });
+}
+
+export async function createTestRecipe(opts: {
+  organizationId: string;
+  name: string;
+  minBottles: number;
+  maxBottles: number;
+  bottlesPerPackage?: number;
+  effectiveFrom?: Date;
+  components: { articleVariantId: string; mode: "PER_BOTTLE" | "PER_PACKAGE" | "PER_ORDER"; quantityPerUnit: string }[];
+}) {
+  return prisma.recipe.create({
+    data: {
+      organizationId: opts.organizationId,
+      name: opts.name,
+      minBottles: opts.minBottles,
+      maxBottles: opts.maxBottles,
+      bottlesPerPackage: opts.bottlesPerPackage ?? null,
+      versions: {
+        create: {
+          version: 1,
+          effectiveFrom: opts.effectiveFrom ?? new Date("2020-01-01"),
+          components: { create: opts.components },
+        },
+      },
+    },
+    include: { versions: { include: { components: true } } },
+  });
+}
+
 export async function createLabelVariant(
   organizationId: string,
   opts: { name: string; sku: string; productVariantId: string }

@@ -10,8 +10,14 @@ export default async function LoginPage() {
   const t = await getTranslations("auth");
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
-      <div className="w-full max-w-sm rounded-xl border border-neutral-200 bg-white p-8 shadow-sm">
+    <div className="flex min-h-screen items-center justify-center bg-cream px-4">
+      <div className="w-full max-w-sm rounded-xl border border-brand-100 bg-white p-8 shadow-sm">
+        <div className="mb-6 flex flex-col items-center">
+          <span className="text-2xl font-bold tracking-tight text-brand-800">Amane</span>
+          <span className="-mt-1 text-xs font-semibold tracking-[0.35em] text-gold-600">
+            BIO
+          </span>
+        </div>
         <h1 className="mb-6 text-center text-xl font-semibold text-neutral-900">
           {t("signInTitle")}
         </h1>

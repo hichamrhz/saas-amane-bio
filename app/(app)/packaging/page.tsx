@@ -10,6 +10,7 @@ export default async function PackagingPage() {
   const session = await requireSession();
   const t = await getTranslations("catalog");
   const tCommon = await getTranslations("common");
+  const tNav = await getTranslations("nav");
 
   const [variants, productVariants] = await Promise.all([
     listArticleVariants(session.organizationId, "CONSUMABLE"),
@@ -22,7 +23,7 @@ export default async function PackagingPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">Emballages et étiquettes</h1>
+      <h1 className="text-2xl font-semibold">{tNav("packaging")}</h1>
       <PackagingForm
         productVariants={productVariants.map((p) => ({
           id: p.id,
@@ -31,18 +32,18 @@ export default async function PackagingPage() {
           articleName: p.article.name,
         }))}
       />
-      <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
+      <div className="overflow-x-auto rounded-lg border border-brand-100 bg-white">
         <table className="w-full text-sm">
-          <thead className="bg-neutral-50 text-start text-xs uppercase text-neutral-500">
+          <thead className="bg-cream-dark/60 text-start text-xs uppercase text-neutral-500">
             <tr>
               <Th>{t("sku")}</Th>
-              <Th>Nom</Th>
-              <Th>Type</Th>
+              <Th>{tCommon("name")}</Th>
+              <Th>{t("consumableType")}</Th>
               <Th>{t("label")}</Th>
-              <Th>Produit associé</Th>
+              <Th>{t("linkedProduct")}</Th>
               <Th>{t("onHand")}</Th>
               <Th>{t("stockUnit")}</Th>
-              <Th>Statut</Th>
+              <Th>{tCommon("status")}</Th>
               <Th />
             </tr>
           </thead>
@@ -50,7 +51,7 @@ export default async function PackagingPage() {
             {variants.length === 0 && (
               <tr>
                 <td colSpan={9} className="px-4 py-6 text-center text-neutral-400">
-                  Aucun consommable pour le moment.
+                  {t("emptyConsumables")}
                 </td>
               </tr>
             )}
@@ -58,7 +59,9 @@ export default async function PackagingPage() {
               <tr key={v.id} className="border-t border-neutral-100">
                 <td className="px-4 py-2 font-mono text-xs">{v.sku}</td>
                 <td className="px-4 py-2">{v.article.name}</td>
-                <td className="px-4 py-2">{v.article.consumableType}</td>
+                <td className="px-4 py-2">
+                  {v.article.consumableType ? t(`consumableTypeLabel.${v.article.consumableType}`) : "—"}
+                </td>
                 <td className="px-4 py-2">{v.label}</td>
                 <td className="px-4 py-2">
                   {v.productVariant

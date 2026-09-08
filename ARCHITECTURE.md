@@ -191,12 +191,163 @@ créer avant d'avoir la logique qui les remplit serait du code mort. Principe
   `(organizationId, clientRequestId)` pour absorber un double-clic ou un
   retry réseau sans double écriture.
 
-## 7. Ce que cette session NE fait PAS (voir `PROGRESS.md` pour le détail)
+## 7. Ce que la session Phase 1-2 n'a pas fait
 
 Recettes de préparation, commandes et leurs statuts, import Google
 Sheets/CSV, retours et transporteurs, équipe/commissions/affiliés,
 dépenses/publicité, tableau de bord avec indicateurs réels, alertes, arabe
-RTL complet sur toutes les pages : **non implémentés**. Les pages
-correspondantes existent dans la navigation mais affichent un état
-"fonctionnalité à venir" explicite — jamais de données ou de graphiques
-inventés.
+RTL complet sur toutes les pages : **non implémentés** à ce stade. Voir §8
+ci-dessous pour la suite (phase 3).
+
+---
+
+# Phase 3 — Recettes, commandes, import, retours, transporteurs (addendum)
+
+Cette section documente les décisions d'architecture de la session qui
+construit la phase 3, à partir de la base livrée en phase 1-2 (voir §1-7
+ci-dessus, toujours valables et non modifiés).
+
+## 8. Périmètre et coupures assumées
+
+La phase 3 couvre une surface énorme (§7-10, §15 du cahier des charges).
+Pour rester réellement testée plutôt que théâtrale, les coupures
+suivantes sont assumées et documentées (jamais silencieuses) :
+
+- **Recettes = emballage, pas produit.** Le produit vendu (les bouteilles)
+  est toujours déduit automatiquement à `CONFIRMED`, pour la quantité
+  vendue, indépendamment de toute recette. Une **recette** ne décrit que
+  les **consommables d'emballage** (carton, papier bulle, ruban, sel,
+  sachet, carte, notice, cadeau) nécessaires pour un **nombre total de
+  bouteilles** dans la commande — pas par produit. Ceci correspond
+  exactement à l'exemple obligatoire du cahier des charges (§9, test #7) :
+  une commande multi-produits n'a qu'un seul jeu d'emballage, basé sur le
+  total de bouteilles, jamais un jeu par produit.
+- **Étiquettes non concernées.** Conformément à la règle §4 (déjà actée en
+  phase 2), la vente/confirmation d'une commande ne touche **jamais** aux
+  étiquettes — elles sont consommées uniquement à la réception coopérative.
+  Testé explicitement (aucun mouvement `LABEL_CONSUMPTION` généré par
+  `confirmOrder`).
+- **Packs/coffrets multi-produits** (composition de plusieurs SKU réels
+  sous un SKU virtuel) : non implémentés. Une commande référence des
+  `ArticleVariant` réels un par un ; un futur pack sera une couche de
+  traduction ajoutée à l'import/saisie, pas un changement du moteur de
+  sortie de stock.
+- **Transporteurs** : fondations seulement (fiche transporteur,
+  affectation à la commande, numéro de suivi, montant COD attendu, frais
+  de livraison facturé). Le rapprochement des versements, les relevés et
+  les créances transporteur (§15) restent à construire (phase suivante).
+- **Finance/rentabilité** : les commandes enregistrent des montants
+  (sous-total, remise, frais de livraison, COD) mais aucun calcul de
+  résultat de période, marge ou ROAS n'est fait ici — ce sont les phases
+  dépenses/rapports.
+
+## 9. Modèle relationnel ajouté
+
+```
+Customer (organisation, nom, téléphone, adresse)
+Carrier (organisation, nom, frais par défaut)
+Recipe (organisation, nom, tranche [minBottles,maxBottles], bottlesPerPackage?)
+  RecipeVersion (recipeId, version, effectiveFrom)
+    RecipeComponent (recipeVersionId, articleVariantId [consommable, non-étiquette],
+                      mode [PER_BOTTLE|PER_PACKAGE|PER_ORDER], quantityPerUnit)
+Order (organisation, orderNumber unique, externalRef?, customerId?, channel,
+       marketingSource, carrierId?, trackingNumber?, status, montants,
+       withSalt, locationId, clientRequestId, skipStockImpact, dates)
+  OrderLine (orderId, articleVariantId [produit], quantity, unitPrice, discount)
+  OrderEvent (orderId, fromStatus, toStatus, occurredAt, createdById, notes)
+Return (organisation, orderId, status, announcedAt?, receivedAt?, operatorId)
+  ReturnLine (returnId, sourceMovementId [le mouvement ORDER_EXIT d'origine],
+              expectedQuantity, receivedQuantity cumulée, healthyQuantity,
+              damagedQuantity, condition)
+ImportBatch (organisation, sourceFormat, columnMapping JSON, résumé)
+  ImportRow (batchId, rowNumber, rawData JSON, status, message, orderId?)
+```
+
+`StockMovementType` gagne trois valeurs additives (migration non
+destructive, comme annoncé en phase 2) : `ORDER_EXIT`, `RETURN_RECEPTION`,
+`LOSS`.
+
+## 10. Machine à états des commandes
+
+```
+NEW ──confirm──> CONFIRMED ──ship──> SHIPPED ──deliver──> DELIVERED
+ │                  │                   │                    │
+ └─cancel(avant)    └─cancel(après)     └─cancel(après)       └─return announce
+   │                  │                   │                    │
+   v                  v                   v                    v
+CANCELLED_BEFORE_PREP CANCELLED_AFTER_PREP CANCELLED_AFTER_PREP RETURN_ANNOUNCED
+                                                                     │
+                                                    ┌────────────────┼──> LOST
+                                                    v
+                                            RETURN_RECEIVED
+```
+
+Effets stock/finance par transition (reprend et prolonge le modèle §5) :
+
+- `NEW` : aucune écriture. Réservation non implémentée (spec l'autorise en
+  option facultative — non construite, pas de fausse réservation).
+- `NEW → CONFIRMED` (une seule fois, atomique, verrouillée) : pour chaque
+  ligne, sortie du produit vendu (`ORDER_EXIT`, quantité vendue) ; résolution
+  déterministe de la recette d'emballage sur le total de bouteilles de la
+  commande (erreur explicite si aucune ou plusieurs recettes correspondent) ;
+  sortie de chaque composant d'emballage requis (`ORDER_EXIT`), sauf les
+  composants sel/sachet si `order.withSalt = false`. Tout ou rien : une
+  insuffisance sur n'importe quel composant annule l'intégralité de
+  l'opération. Un second appel sur une commande déjà `CONFIRMED` (ou
+  au-delà) est un no-op — vérifié par verrou avisoire sur la commande.
+  `order.skipStockImpact = true` (commandes historiques importées,
+  antérieures à la date de démarrage) désactive complètement les écritures
+  de stock pour cette commande, comme le stock d'ouverture en phase 2.
+- `CONFIRMED → SHIPPED` : horodatage et transporteur/suivi uniquement,
+  aucune écriture de stock.
+- `(CONFIRMED|SHIPPED) → DELIVERED` : horodatage uniquement ; aucune
+  nouvelle sortie. La reconnaissance de revenu proprement dite (calcul de
+  résultat) reste à construire en phase dépenses/rapports — cette phase se
+  contente d'enregistrer que la commande est livrée et à quelle date.
+- `→ CANCELLED_BEFORE_PREP` (uniquement depuis `NEW`) : aucune écriture
+  (rien n'avait été déduit).
+- `→ CANCELLED_AFTER_PREP` (depuis `CONFIRMED`/`SHIPPED`) : opération
+  corrective explicite — l'utilisateur choisit, mouvement par mouvement
+  déjà sorti, ce qui est réellement récupérable et en quelle quantité ;
+  seules ces quantités génèrent une écriture `CORRECTION` positive, **au
+  coût d'origine** du mouvement de sortie (jamais recalculé). Jamais de
+  restauration automatique intégrale.
+- `DELIVERED/SHIPPED → RETURN_ANNOUNCED` : déclaration seule, aucune
+  réintégration.
+- `RETURN_ANNOUNCED → RETURN_RECEIVED` : passe par l'écran de réception de
+  retour (`Return`/`ReturnLine`). Seules les quantités **saines**
+  effectivement comptées génèrent une écriture `RETURN_RECEPTION`
+  positive au coût d'origine du mouvement de sortie source, vers
+  l'emplacement demandé (interne vendable, ou quarantaine si abîmé —
+  même mécanisme de mouvement, emplacement différent). Le cumul reçu ne
+  peut jamais dépasser le cumul attendu (réceptions partielles répétées
+  sans double comptage).
+- `LOST` : marqueur terminal ; aucune écriture supplémentaire, puisque la
+  quantité a déjà quitté le stock vendable à `CONFIRMED` et n'est jamais
+  revenue.
+
+## 11. Import (copier-coller / CSV / XLSX)
+
+Pipeline : coller ou charger → parser en lignes brutes → regrouper par
+identifiant de commande (une ligne par article, même numéro) → valider
+chaque groupe (champs globaux non contradictoires entre lignes du même
+groupe) → prévisualiser (nouvelle / mise à jour / doublon sans changement /
+invalide / référence SKU inconnue) → valider → rapport.
+
+Chaque groupe (= une commande) est transactionnel : soit la commande
+entière est créée/mise à jour, soit rien pour ce groupe — mais un groupe en
+échec n'interrompt pas le traitement des autres (§9 du cahier des charges :
+"aucune moitié de commande validée", pas "tout ou rien pour le fichier
+entier"). L'upsert se fait par `(organizationId, orderNumber)` ; les champs
+absents d'une ligne de mise à jour ne remplacent jamais une valeur
+existante par du vide. Une mise à jour qui ferait régresser un statut
+(ex. `DELIVERED` → `CONFIRMED`) est refusée pour ce groupe et rapportée
+explicitement, jamais appliquée silencieusement.
+
+Si l'import crée directement une commande à `CONFIRMED`/`DELIVERED` (cas
+d'une commande déjà livrée dont on importe l'historique), la même
+transaction atomique de sortie de stock s'exécute avec la date de
+l'événement fournie ; si elle échoue (recette introuvable, stock
+insuffisant), la ligne est marquée invalide avec un message de résolution
+explicite — jamais un coût inventé à zéro. Le mapping des colonnes est
+mémorisé par organisation et pré-rempli à l'import suivant.

@@ -20,17 +20,17 @@ export default async function ProductsPage() {
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold">{t("title")}</h1>
       <ProductForm />
-      <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
+      <div className="overflow-x-auto rounded-lg border border-brand-100 bg-white">
         <table className="w-full text-sm">
-          <thead className="bg-neutral-50 text-start text-xs uppercase text-neutral-500">
+          <thead className="bg-cream-dark/60 text-start text-xs uppercase text-neutral-500">
             <tr>
               <Th>{t("sku")}</Th>
-              <Th>Produit</Th>
+              <Th>{t("kindProduct")}</Th>
               <Th>{t("label")}</Th>
               <Th>{t("category")}</Th>
               <Th>{t("onHand")}</Th>
               <Th>{t("stockUnit")}</Th>
-              <Th>Statut</Th>
+              <Th>{tCommon("status")}</Th>
               <Th />
             </tr>
           </thead>
@@ -38,7 +38,7 @@ export default async function ProductsPage() {
             {variants.length === 0 && (
               <tr>
                 <td colSpan={8} className="px-4 py-6 text-center text-neutral-400">
-                  Aucun produit pour le moment.
+                  {t("emptyProducts")}
                 </td>
               </tr>
             )}

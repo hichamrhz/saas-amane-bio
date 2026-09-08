@@ -2,7 +2,7 @@ import Decimal from "decimal.js";
 import { prisma } from "@/lib/db/prisma";
 import { lockStockRow } from "@/lib/inventory/lock";
 import { computeWeightedAverageCost } from "@/lib/inventory/valuation";
-import type { Prisma } from "@/app/generated/prisma/client";
+import { getOnHandAtInTx } from "@/lib/inventory/stock";
 import type { ReceptionKind } from "@/app/generated/prisma/enums";
 
 export type ReceptionErrorCode =
@@ -195,7 +195,7 @@ export async function createReception(input: CreateReceptionInput) {
 
         const mapping = labelMappingByLine.get(i);
         if (mapping) {
-          const available = await getOnHandInTx(
+          const available = await getOnHandAtInTx(
             tx,
             input.organizationId,
             mapping.labelVariantId,
@@ -337,17 +337,4 @@ export async function listReceptions(organizationId: string, kinds?: ReceptionKi
     orderBy: { createdAt: "desc" },
     take: 50,
   });
-}
-
-async function getOnHandInTx(
-  tx: Prisma.TransactionClient,
-  organizationId: string,
-  articleVariantId: string,
-  locationId: string
-): Promise<Decimal> {
-  const result = await tx.stockMovement.aggregate({
-    where: { organizationId, articleVariantId, locationId },
-    _sum: { quantityDelta: true },
-  });
-  return new Decimal(result._sum.quantityDelta?.toString() ?? "0");
 }
