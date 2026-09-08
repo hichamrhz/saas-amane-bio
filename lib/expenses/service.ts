@@ -1,3 +1,4 @@
+import Decimal from "decimal.js";
 import { prisma } from "@/lib/db/prisma";
 import type { AdPlatform, ExpenseCategory } from "@/app/generated/prisma/enums";
 
@@ -11,6 +12,8 @@ export type CreateExpenseInput = {
   label?: string | null;
   amount: string;
   eventDate: Date;
+  leads?: number | null;
+  articleId?: string | null;
   notes?: string | null;
 };
 
@@ -24,6 +27,17 @@ export async function createExpense(input: CreateExpenseInput) {
   if (input.category === "OTHER" && !input.label?.trim()) {
     throw new ExpenseError("Un libellé est requis pour une autre dépense.");
   }
+  if (input.leads !== null && input.leads !== undefined && input.leads < 0) {
+    throw new ExpenseError("Le nombre de leads ne peut pas être négatif.");
+  }
+
+  const articleId = input.category === "ADVERTISING" ? (input.articleId ?? null) : null;
+  if (articleId) {
+    const article = await prisma.article.findFirst({
+      where: { id: articleId, organizationId: input.organizationId },
+    });
+    if (!article) throw new ExpenseError("Produit invalide.");
+  }
 
   return prisma.expense.create({
     data: {
@@ -34,6 +48,8 @@ export async function createExpense(input: CreateExpenseInput) {
       label: input.label?.trim() || null,
       amount: input.amount,
       eventDate: input.eventDate,
+      leads: input.category === "ADVERTISING" ? (input.leads ?? null) : null,
+      articleId,
       notes: input.notes ?? null,
     },
   });
@@ -102,6 +118,7 @@ function isUniqueConstraintError(error: unknown): boolean {
 export async function listExpenses(organizationId: string) {
   return prisma.expense.findMany({
     where: { organizationId },
+    include: { article: { select: { id: true, name: true } } },
     orderBy: { eventDate: "desc" },
     take: 100,
   });
@@ -113,4 +130,92 @@ export async function sumExpenses(organizationId: string, from: Date, to: Date):
     _sum: { amount: true },
   });
   return (result._sum.amount ?? 0).toString();
+}
+
+export type AdSpendRow = {
+  key: string;
+  label: string;
+  spend: string;
+  leads: number;
+  /** null (never 0) when there are no leads to divide by — same honesty
+   * rule as the funnel rates in getPeriodReport (§17, test #27). */
+  cpl: string | null;
+};
+
+export type AdSpendBreakdown = {
+  totalSpend: string;
+  totalLeads: number;
+  totalCpl: string | null;
+  byPlatform: AdSpendRow[];
+  byProduct: AdSpendRow[];
+};
+
+/** Aggregates advertising expenses over a period into the same Spend /
+ * Leads / Cost-per-lead breakdown the media-buying spreadsheet tracked by
+ * hand, split by platform and by promoted product (§14). CPL is always
+ * derived here, never persisted. */
+export async function getAdSpendBreakdown(
+  organizationId: string,
+  from: Date,
+  to: Date
+): Promise<AdSpendBreakdown> {
+  const rows = await prisma.expense.findMany({
+    where: { organizationId, category: "ADVERTISING", eventDate: { gte: from, lte: to } },
+    select: {
+      platform: true,
+      amount: true,
+      leads: true,
+      articleId: true,
+      article: { select: { name: true } },
+    },
+  });
+
+  const byPlatform = new Map<string, { spend: Decimal; leads: number }>();
+  const byProduct = new Map<string, { label: string; spend: Decimal; leads: number }>();
+  let totalSpend = new Decimal(0);
+  let totalLeads = 0;
+
+  for (const row of rows) {
+    const amount = new Decimal(row.amount.toString());
+    const leads = row.leads ?? 0;
+    totalSpend = totalSpend.plus(amount);
+    totalLeads += leads;
+
+    const platformKey = row.platform ?? "OTHER";
+    const platformEntry = byPlatform.get(platformKey) ?? { spend: new Decimal(0), leads: 0 };
+    platformEntry.spend = platformEntry.spend.plus(amount);
+    platformEntry.leads += leads;
+    byPlatform.set(platformKey, platformEntry);
+
+    if (row.articleId) {
+      const productEntry = byProduct.get(row.articleId) ?? {
+        label: row.article?.name ?? row.articleId,
+        spend: new Decimal(0),
+        leads: 0,
+      };
+      productEntry.spend = productEntry.spend.plus(amount);
+      productEntry.leads += leads;
+      byProduct.set(row.articleId, productEntry);
+    }
+  }
+
+  const toRow = (key: string, label: string, spend: Decimal, leads: number): AdSpendRow => ({
+    key,
+    label,
+    spend: spend.toString(),
+    leads,
+    cpl: leads > 0 ? spend.dividedBy(leads).toFixed(2) : null,
+  });
+
+  return {
+    totalSpend: totalSpend.toString(),
+    totalLeads,
+    totalCpl: totalLeads > 0 ? totalSpend.dividedBy(totalLeads).toFixed(2) : null,
+    byPlatform: [...byPlatform.entries()]
+      .map(([key, v]) => toRow(key, key, v.spend, v.leads))
+      .sort((a, b) => Number(b.spend) - Number(a.spend)),
+    byProduct: [...byProduct.entries()]
+      .map(([key, v]) => toRow(key, v.label, v.spend, v.leads))
+      .sort((a, b) => Number(b.spend) - Number(a.spend)),
+  };
 }

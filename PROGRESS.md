@@ -167,7 +167,19 @@ cahier des charges).
   charge libre). Charges récurrentes (abonnements, etc.) génération
   idempotente par (clé de récurrence, année, mois), garantie par une
   contrainte d'unicité en base — même pattern que le fixe mensuel de la
-  Phase 4.
+  Phase 4. La date de la dépense (`eventDate`) est librement modifiable —
+  saisir aujourd'hui une dépense datée d'un mois passé la fait apparaître
+  correctement dans les rapports de cette période-là, pas dans celle de
+  saisie.
+- **Suivi publicitaire (Leads / CPL / produit)** (`lib/expenses/service.ts`
+  → `getAdSpendBreakdown`, §14) : inspiré du tableau de suivi média-achat
+  utilisé manuellement avant ce module. Une dépense de catégorie Publicité
+  peut désormais porter un nombre de leads et être rattachée à un produit
+  (`Article`, pas `ArticleVariant` — une campagne cible une gamme, pas un
+  SKU précis). Le coût par lead (CPL = montant ÷ leads) est toujours
+  **dérivé à la lecture, jamais stocké**, et vaut explicitement `null`
+  (jamais 0) quand aucun lead n'est renseigné — même règle d'honnêteté que
+  les taux de l'entonnoir de commandes (§17, test #27).
 - **Rapports** (`lib/reports/`, page `/reports`, §16-17) :
   - **Résultat de période** : chiffre d'affaires (commandes livrées dans
     l'intervalle), coût des marchandises vendues (mouvements `ORDER_EXIT`
@@ -187,6 +199,12 @@ cahier des charges).
     contre).
   - Sélecteur de période (dates de début/fin) et de seuil, formulaire GET
     simple, aucune donnée mutée par cette page.
+  - **Section Marketing** : dépense publicitaire, leads et CPL agrégés sur
+    la période, ventilés par plateforme et par produit ; **coût
+    d'acquisition (CAC)** = dépense publicitaire totale de la période ÷
+    commandes livrées de la même période (même cohorte que le chiffre
+    d'affaires/COGS ci-dessus), `null` (jamais 0) s'il n'y a aucune
+    commande livrée à diviser.
 
 **Coquille applicative**
 - Les 15 pages du cahier des charges sont maintenant **toutes**
@@ -198,13 +216,13 @@ cahier des charges).
 ## 2. Tests exécutés
 
 ```
-pnpm test       # Vitest — 62 tests, vraie base Postgres de test
+pnpm test       # Vitest — 67 tests, vraie base Postgres de test
 pnpm test:e2e   # Playwright — 5 parcours, vrai navigateur, vraie DB dev
 pnpm build      # next build — compile et type-check sans erreur
 npx eslint .    # aucune erreur
 ```
 
-Tous passent au moment de la rédaction (62/62 Vitest, 5/5 Playwright,
+Tous passent au moment de la rédaction (67/67 Vitest, 5/5 Playwright,
 build et lint propres). Correspondance avec les 30 tests d'acceptation
 obligatoires du cahier des charges (§21) :
 
@@ -327,7 +345,7 @@ Pour les tests automatisés :
 ```bash
 cp .env.test.example .env.test   # même base que TEST_DATABASE_URL dans .env
 pnpm db:push:test                 # applique le schéma à la base de test (une fois)
-pnpm test                         # Vitest — 62 tests
+pnpm test                         # Vitest — 67 tests
 pnpm test:e2e                     # Playwright — 5 parcours, nécessite `pnpm dev` lancé à part
 ```
 
@@ -366,7 +384,13 @@ dans la période produit un résultat de période exact (chiffre d'affaires,
 COGS, commissions, dépenses, marge nette) ; une période sans commande
 n'affiche jamais un taux calculé à partir d'une division par zéro ; un
 article sous le seuil choisi apparaît dans les alertes de stock bas, un
-article au-dessus n'y apparaît pas.
+article au-dessus n'y apparaît pas. Le suivi publicitaire (Leads/CPL/CAC)
+est vérifié dans le même fichier, et manuellement en conditions réelles
+(navigateur, base de dev) : saisir une dépense Facebook avec un nombre de
+leads et un produit → le CPL calculé apparaît immédiatement dans le tableau
+des dépenses et dans les tableaux "par plateforme"/"par produit" de
+`/reports`, et le CAC de la période reflète bien la dépense ÷ les commandes
+livrées de cette même période.
 
 La suite (rapprochement COD, découpe métrique, capacité de préparation)
 n'est pas encore construite — voir §3.

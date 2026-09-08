@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/rbac";
 import { createExpense, generateRecurringExpense, ExpenseError } from "@/lib/expenses/service";
-import { requireString, parseDecimalInput } from "@/lib/numbers";
+import { requireString, parseDecimalInput, parseIntegerInput } from "@/lib/numbers";
 import type { AdPlatform, ExpenseCategory } from "@/app/generated/prisma/enums";
 
 export type FormState = { error?: string } | undefined;
@@ -29,6 +29,8 @@ export async function createExpenseAction(_prev: FormState, formData: FormData):
       label: requireString(formData.get("label")),
       amount,
       eventDate: new Date(eventDateRaw),
+      leads: parseIntegerInput(formData.get("leads")),
+      articleId: requireString(formData.get("articleId")),
       notes: requireString(formData.get("notes")),
     });
   } catch (error) {

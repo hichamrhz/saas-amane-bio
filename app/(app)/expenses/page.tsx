@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/auth/rbac";
 import { listExpenses } from "@/lib/expenses/service";
+import { listProductArticles } from "@/lib/catalog/service";
 import { formatMoney } from "@/lib/numbers";
 import { ExpenseForm } from "./expense-form";
 import { RecurringExpenseForm } from "./recurring-expense-form";
@@ -10,7 +11,10 @@ export default async function ExpensesPage() {
   const t = await getTranslations("expenses");
   const tCommon = await getTranslations("common");
 
-  const expenses = await listExpenses(session.organizationId);
+  const [expenses, products] = await Promise.all([
+    listExpenses(session.organizationId),
+    listProductArticles(session.organizationId),
+  ]);
   const total = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
 
   return (
@@ -27,7 +31,7 @@ export default async function ExpensesPage() {
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="flex-1">
-          <ExpenseForm />
+          <ExpenseForm products={products} />
         </div>
         <div className="flex-1">
           <RecurringExpenseForm />
@@ -41,29 +45,38 @@ export default async function ExpensesPage() {
               <Th>{tCommon("date")}</Th>
               <Th>{t("category")}</Th>
               <Th>{t("platformOrLabel")}</Th>
+              <Th>{t("product")}</Th>
               <Th>{t("amount")}</Th>
+              <Th>{t("leads")}</Th>
+              <Th>{t("cpl")}</Th>
               <Th>{tCommon("notes")}</Th>
             </tr>
           </thead>
           <tbody>
             {expenses.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-neutral-400">
+                <td colSpan={8} className="px-4 py-6 text-center text-neutral-400">
                   {t("empty")}
                 </td>
               </tr>
             )}
-            {expenses.map((e) => (
-              <tr key={e.id} className="border-t border-neutral-100">
-                <td className="px-4 py-2">{e.eventDate.toLocaleDateString("fr-FR")}</td>
-                <td className="px-4 py-2">
-                  {e.category === "ADVERTISING" ? t("categoryAdvertising") : t("categoryOther")}
-                </td>
-                <td className="px-4 py-2">{e.platform ?? e.label ?? "—"}</td>
-                <td className="px-4 py-2">{formatMoney(e.amount)} MAD</td>
-                <td className="px-4 py-2">{e.notes ?? "—"}</td>
-              </tr>
-            ))}
+            {expenses.map((e) => {
+              const cpl = e.leads && e.leads > 0 ? (Number(e.amount) / e.leads).toFixed(2) : null;
+              return (
+                <tr key={e.id} className="border-t border-neutral-100">
+                  <td className="px-4 py-2">{e.eventDate.toLocaleDateString("fr-FR")}</td>
+                  <td className="px-4 py-2">
+                    {e.category === "ADVERTISING" ? t("categoryAdvertising") : t("categoryOther")}
+                  </td>
+                  <td className="px-4 py-2">{e.platform ?? e.label ?? "—"}</td>
+                  <td className="px-4 py-2">{e.article?.name ?? "—"}</td>
+                  <td className="px-4 py-2">{formatMoney(e.amount)} MAD</td>
+                  <td className="px-4 py-2">{e.leads ?? "—"}</td>
+                  <td className="px-4 py-2">{cpl ? `${cpl} MAD` : "—"}</td>
+                  <td className="px-4 py-2">{e.notes ?? "—"}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

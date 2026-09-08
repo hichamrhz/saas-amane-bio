@@ -368,7 +368,11 @@
     "recurrenceKeyPlaceholder": "Ex : Abonnement Canva",
     "month": "Mois",
     "year": "Année",
-    "generate": "Générer"
+    "generate": "Générer",
+    "leads": "Leads",
+    "cpl": "Coût / lead",
+    "product": "Produit",
+    "productNone": "— Aucun —"
   },
   "reports": {
     "title": "Rapports",
@@ -390,6 +394,17 @@
     "netMargin": "Marge nette",
     "cogsMissingCostWarning": "{count} mouvement(s) de sortie sans coût unitaire enregistré ont été exclus du calcul — le coût des marchandises vendues ci-dessus est donc sous-estimé.",
     "lowStock": "Alertes de réapprovisionnement",
-    "emptyLowStock": "Aucun article sous le seuil choisi."
+    "emptyLowStock": "Aucun article sous le seuil choisi.",
+    "marketing": "Marketing publicitaire",
+    "adSpendByPlatform": "Dépense publicitaire par plateforme",
+    "adSpendByProduct": "Dépense publicitaire par produit",
+    "spend": "Dépense",
+    "leads": "Leads",
+    "cpl": "Coût / lead",
+    "cac": "Coût d'acquisition (CAC)",
+    "cacDescription": "Dépense publicitaire totale ÷ commandes livrées sur la période.",
+    "cacUnavailable": "Aucune commande livrée sur cette période — CAC non calculable.",
+    "emptyAdSpend": "Aucune dépense publicitaire sur cette période.",
+    "emptyAdSpendByProduct": "Aucune dépense publicitaire liée à un produit sur cette période."
   }
 }

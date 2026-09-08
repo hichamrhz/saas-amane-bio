@@ -5,7 +5,9 @@ import { useTranslations } from "next-intl";
 import { createExpenseAction, type FormState } from "./actions";
 import type { ExpenseCategory } from "@/app/generated/prisma/enums";
 
-export function ExpenseForm() {
+type ProductOption = { id: string; name: string };
+
+export function ExpenseForm({ products }: { products: ProductOption[] }) {
   const [state, formAction, isPending] = useActionState<FormState, FormData>(
     createExpenseAction,
     undefined
@@ -55,6 +57,26 @@ export function ExpenseForm() {
           {t("amount")} (MAD)
           <input name="amount" required inputMode="decimal" className="rounded-md border border-neutral-300 px-3 py-2 text-sm" />
         </label>
+
+        {category === "ADVERTISING" && (
+          <>
+            <label className="flex flex-col gap-1 text-sm text-neutral-700">
+              {t("leads")}
+              <input name="leads" type="number" min={0} step={1} className="rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+            </label>
+            <label className="flex flex-col gap-1 text-sm text-neutral-700">
+              {t("product")}
+              <select name="articleId" defaultValue="" className="rounded-md border border-neutral-300 px-3 py-2 text-sm">
+                <option value="">{t("productNone")}</option>
+                {products.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </>
+        )}
 
         <label className="flex flex-col gap-1 text-sm text-neutral-700">
           {t("eventDate")}

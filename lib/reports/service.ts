@@ -1,7 +1,8 @@
 import Decimal from "decimal.js";
 import { prisma } from "@/lib/db/prisma";
 import { getOnHandSummary } from "@/lib/inventory/stock";
-import { sumExpenses } from "@/lib/expenses/service";
+import { sumExpenses, getAdSpendBreakdown } from "@/lib/expenses/service";
+import type { AdSpendBreakdown } from "@/lib/expenses/service";
 
 export type PeriodReport = {
   from: Date;
@@ -23,6 +24,11 @@ export type PeriodReport = {
   commissions: string;
   expenses: string;
   netMargin: string;
+  adSpend: AdSpendBreakdown;
+  /** Total dépense publicitaire ÷ commandes livrées sur la période —
+   * approximation du coût d'acquisition client, null (jamais 0) s'il n'y a
+   * aucune commande livrée à diviser (§17, test #27). */
+  cac: string | null;
 };
 
 export async function getPeriodReport(
@@ -79,14 +85,23 @@ export async function getPeriodReport(
     cogs = cogs.plus(new Decimal(m.quantityDelta.toString()).abs().times(m.unitCost.toString()));
   }
 
-  const [commissionsAgg, expensesSum] = await Promise.all([
+  const [commissionsAgg, expensesSum, adSpend] = await Promise.all([
     prisma.commission.aggregate({ where: { organizationId, earnedAt: { gte: from, lte: to } }, _sum: { amount: true } }),
     sumExpenses(organizationId, from, to),
+    getAdSpendBreakdown(organizationId, from, to),
   ]);
   const commissions = new Decimal(commissionsAgg._sum.amount?.toString() ?? "0");
   const expenses = new Decimal(expensesSum);
 
   const netMargin = revenue.minus(cogs).minus(commissions).minus(expenses);
+
+  // Same cohort as revenue/cogs above (deliveredAt within the period), so
+  // ad spend dated within the period is compared against sales actually
+  // closed within that same period.
+  const cac =
+    deliveredOrders.length > 0
+      ? new Decimal(adSpend.totalSpend).dividedBy(deliveredOrders.length).toFixed(2)
+      : null;
 
   return {
     from,
@@ -102,6 +117,8 @@ export async function getPeriodReport(
     commissions: commissions.toString(),
     expenses: expenses.toString(),
     netMargin: netMargin.toString(),
+    adSpend,
+    cac,
   };
 }
 

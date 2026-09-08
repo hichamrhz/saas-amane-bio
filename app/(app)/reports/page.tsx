@@ -145,6 +145,92 @@ export default async function ReportsPage({
       </section>
 
       <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold uppercase text-neutral-500">{t("marketing")}</h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="rounded-lg border border-brand-100 bg-white p-4">
+            <p className="text-xs uppercase tracking-wide text-neutral-500">{t("spend")}</p>
+            <p className="mt-1 text-2xl font-semibold text-brand-800">
+              {formatMoney(report.adSpend.totalSpend)} MAD
+            </p>
+          </div>
+          <div className="rounded-lg border border-brand-100 bg-white p-4">
+            <p className="text-xs uppercase tracking-wide text-neutral-500">{t("leads")}</p>
+            <p className="mt-1 text-2xl font-semibold text-brand-800">{report.adSpend.totalLeads}</p>
+          </div>
+          <div className="rounded-lg border border-brand-100 bg-white p-4">
+            <p className="text-xs uppercase tracking-wide text-neutral-500">{t("cac")}</p>
+            <p className="mt-1 text-2xl font-semibold text-brand-800">
+              {report.cac ? `${formatMoney(report.cac)} MAD` : "—"}
+            </p>
+            <p className="text-xs text-neutral-400">
+              {report.cac ? t("cacDescription") : t("cacUnavailable")}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="overflow-x-auto rounded-lg border border-brand-100 bg-white">
+            <table className="w-full text-sm">
+              <thead className="bg-cream-dark/60 text-start text-xs uppercase text-neutral-500">
+                <tr>
+                  <Th>{t("adSpendByPlatform")}</Th>
+                  <Th>{t("spend")}</Th>
+                  <Th>{t("leads")}</Th>
+                  <Th>{t("cpl")}</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.adSpend.byPlatform.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-6 text-center text-neutral-400">
+                      {t("emptyAdSpend")}
+                    </td>
+                  </tr>
+                )}
+                {report.adSpend.byPlatform.map((row) => (
+                  <tr key={row.key} className="border-t border-neutral-100">
+                    <td className="px-4 py-2">{row.label}</td>
+                    <td className="px-4 py-2">{formatMoney(row.spend)} MAD</td>
+                    <td className="px-4 py-2">{row.leads}</td>
+                    <td className="px-4 py-2">{row.cpl ? `${row.cpl} MAD` : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-brand-100 bg-white">
+            <table className="w-full text-sm">
+              <thead className="bg-cream-dark/60 text-start text-xs uppercase text-neutral-500">
+                <tr>
+                  <Th>{t("adSpendByProduct")}</Th>
+                  <Th>{t("spend")}</Th>
+                  <Th>{t("leads")}</Th>
+                  <Th>{t("cpl")}</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.adSpend.byProduct.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-6 text-center text-neutral-400">
+                      {t("emptyAdSpendByProduct")}
+                    </td>
+                  </tr>
+                )}
+                {report.adSpend.byProduct.map((row) => (
+                  <tr key={row.key} className="border-t border-neutral-100">
+                    <td className="px-4 py-2">{row.label}</td>
+                    <td className="px-4 py-2">{formatMoney(row.spend)} MAD</td>
+                    <td className="px-4 py-2">{row.leads}</td>
+                    <td className="px-4 py-2">{row.cpl ? `${row.cpl} MAD` : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold uppercase text-neutral-500">{t("lowStock")}</h2>
         <div className="overflow-x-auto rounded-lg border border-brand-100 bg-white">
           <table className="w-full text-sm">

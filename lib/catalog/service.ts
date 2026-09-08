@@ -97,6 +97,17 @@ export async function listArticleVariants(organizationId: string, kind: ArticleK
   });
 }
 
+/** Product families (not variants) for contexts that reason at the product
+ * level rather than the SKU level — e.g. attaching an advertising expense
+ * to "Vinaigre de figue" rather than to one specific bottle size. */
+export async function listProductArticles(organizationId: string) {
+  return prisma.article.findMany({
+    where: { organizationId, kind: "PRODUCT", status: "ACTIVE" },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
+}
+
 export async function archiveArticleVariant(organizationId: string, variantId: string) {
   await prisma.articleVariant.updateMany({
     where: { id: variantId, organizationId },

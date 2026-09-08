@@ -184,6 +184,7 @@ model Article {
   updatedAt      DateTime        @updatedAt
 
   variants ArticleVariant[]
+  expenses Expense[]
 
   @@index([organizationId])
 }
@@ -1036,6 +1037,14 @@ model Expense {
   amount         Decimal         @db.Decimal(14, 2)
   eventDate      DateTime // jour réel de la dépense
 
+  // Suivi publicitaire : renseignés uniquement si category = ADVERTISING.
+  // leads permet le calcul du coût par lead (CPL = amount / leads), toujours
+  // dérivé à la lecture et jamais stocké. articleId relie la dépense au
+  // produit promu pour comparer le coût publicitaire par produit.
+  leads     Int?
+  articleId String?
+  article   Article? @relation(fields: [articleId], references: [id])
+
   recurrenceKey String?
   periodYear    Int?
   periodMonth   Int?
@@ -1048,4 +1057,5 @@ model Expense {
   @@unique([organizationId, recurrenceKey, periodYear, periodMonth])
   @@index([organizationId, eventDate])
   @@index([organizationId, category])
+  @@index([articleId])
 }
