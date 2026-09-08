@@ -39,7 +39,7 @@ test("boucle étiquettes -> coopérative -> réceptions (exemple obligatoire du 
   await page.getByLabel("SKU", { exact: true }).fill(LABEL_SKU);
   await page.getByLabel("Format").fill("500ml");
   await page
-    .getByLabel("Produit associé (uniquement pour une étiquette)")
+    .getByLabel("Produit associé (étiquette)")
     .selectOption({ label: `${PRODUCT_NAME} · 500ml (${PRODUCT_SKU})` });
   await page.getByRole("button", { name: "Créer" }).click();
   await expect(page.getByText(LABEL_SKU)).toBeVisible();

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useTranslations } from "next-intl";
 import { createTransferAction, type FormState } from "./actions";
 
 type ArticleOption = { id: string; sku: string; label: string; articleName: string };
@@ -18,15 +19,18 @@ export function TransferForm({
     undefined
   );
   const today = new Date().toISOString().slice(0, 10);
+  const t = useTranslations("cooperativeTransfers");
+  const tPurchases = useTranslations("purchases");
+  const tCommon = useTranslations("common");
 
   return (
     <details className="rounded-lg border border-brand-100 bg-white p-4" open>
       <summary className="cursor-pointer text-sm font-medium text-neutral-800">
-        + Nouveau transfert
+        + {t("new")}
       </summary>
       <form action={formAction} className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm text-neutral-700">
-          Étiquette / consommable
+          {t("articleField")}
           <select
             name="articleVariantId"
             required
@@ -34,7 +38,7 @@ export function TransferForm({
             className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
           >
             <option value="" disabled>
-              — Choisir —
+              {tCommon("choose")}
             </option>
             {articles.map((a) => (
               <option key={a.id} value={a.id}>
@@ -44,7 +48,7 @@ export function TransferForm({
           </select>
         </label>
         <label className="flex flex-col gap-1 text-sm text-neutral-700">
-          Quantité
+          {tCommon("quantity")}
           <input
             name="quantity"
             required
@@ -53,7 +57,7 @@ export function TransferForm({
           />
         </label>
         <label className="flex flex-col gap-1 text-sm text-neutral-700">
-          Depuis
+          {t("from")}
           <select
             name="fromLocationId"
             required
@@ -61,7 +65,7 @@ export function TransferForm({
             className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
           >
             <option value="" disabled>
-              — Choisir —
+              {tCommon("choose")}
             </option>
             {locations.map((l) => (
               <option key={l.id} value={l.id}>
@@ -71,7 +75,7 @@ export function TransferForm({
           </select>
         </label>
         <label className="flex flex-col gap-1 text-sm text-neutral-700">
-          Vers
+          {t("to")}
           <select
             name="toLocationId"
             required
@@ -79,7 +83,7 @@ export function TransferForm({
             className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
           >
             <option value="" disabled>
-              — Choisir —
+              {tCommon("choose")}
             </option>
             {locations.map((l) => (
               <option key={l.id} value={l.id}>
@@ -89,7 +93,7 @@ export function TransferForm({
           </select>
         </label>
         <label className="flex flex-col gap-1 text-sm text-neutral-700">
-          Date de l&apos;événement
+          {tPurchases("eventDate")}
           <input
             type="date"
             name="eventDate"
@@ -109,7 +113,7 @@ export function TransferForm({
             disabled={isPending}
             className="rounded-md bg-brand-700 px-3 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
           >
-            Transférer
+            {t("submit")}
           </button>
         </div>
       </form>

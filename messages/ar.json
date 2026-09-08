@@ -26,7 +26,16 @@
     "date": "التاريخ",
     "notes": "ملاحظات",
     "yes": "نعم",
-    "no": "لا"
+    "no": "لا",
+    "name": "الاسم",
+    "article": "المادة",
+    "location": "الموقع",
+    "destination": "الوجهة",
+    "reference": "المرجع",
+    "by": "بواسطة",
+    "choose": "— اختر —",
+    "none": "— بدون —",
+    "role": "الدور"
   },
   "nav": {
     "dashboard": "لوحة التحكم",
@@ -73,7 +82,27 @@
     "onHand": "المخزون المتوفر",
     "kindProduct": "منتج",
     "kindConsumable": "مستهلك",
-    "consumableType": "نوع المستهلك"
+    "consumableType": "نوع المستهلك",
+    "productName": "اسم المنتج",
+    "newProductVariant": "نسخة جديدة من المنتج",
+    "newConsumable": "مستهلك جديد",
+    "purchaseToStockFactor": "1 وحدة شراء = X وحدات مخزون",
+    "widthCmOptional": "العرض (سم)، إذا كان ذلك ينطبق",
+    "integerOnlyHint": "كميات صحيحة فقط (قوارير، كراتين، أكياس…)",
+    "emptyProducts": "لا يوجد أي منتج حاليًا.",
+    "emptyConsumables": "لا يوجد أي مستهلك حاليًا.",
+    "consumableTypeLabel": {
+      "LABEL": "ملصق",
+      "CARTON": "كرتون",
+      "BUBBLE_WRAP": "فقاعات هوائية",
+      "TAPE": "شريط لاصق",
+      "SALT": "ملح",
+      "SALT_SACHET": "كيس ملح",
+      "CARD": "بطاقة",
+      "NOTICE": "نشرة",
+      "GIFT": "هدية",
+      "OTHER": "أخرى"
+    }
   },
   "locations": {
     "title": "المواقع",
@@ -87,7 +116,10 @@
     "title": "الموردون",
     "name": "الاسم",
     "phone": "الهاتف",
-    "leadTimeDays": "مدة التوريد (أيام)"
+    "leadTimeDays": "مدة التوريد (أيام)",
+    "new": "مورد جديد",
+    "empty": "لا يوجد أي مورد حاليًا.",
+    "leadTimeDaysValue": "مدة التوريد: {days} يوم"
   },
   "purchases": {
     "title": "المشتريات والاستلامات",
@@ -105,14 +137,26 @@
     "insufficientLabels": "ملصقات غير كافية: {available} متوفرة لدى التعاونية، والمطلوب {required} من {label}. تم إلغاء الاستلام بالكامل، لم تُسجَّل أي حركة.",
     "noLabelMapping": "لا يوجد ملصق مرتبط بهذا المنتج في الإعدادات. تم إيقاف الاستلام.",
     "ambiguousLabelMapping": "هناك أكثر من ملصق مرتبط بهذا المنتج. صحّح الإعدادات قبل المتابعة.",
-    "receptionCreated": "تم تسجيل الاستلام."
+    "receptionCreated": "تم تسجيل الاستلام.",
+    "tableType": "النوع",
+    "newReceptionPurchaseTitle": "استلام جديد (شراء أو مخزون افتتاحي)",
+    "newReceptionCooperativeTitle": "استلام جديد من التعاونية",
+    "cooperativeReceptionsTitle": "استلام القوارير (يستهلك الملصقات)",
+    "receptionType": "نوع الاستلام",
+    "referenceOptional": "المرجع (اختياري)",
+    "saveReception": "تسجيل الاستلام",
+    "emptyReceptions": "لا يوجد أي استلام حاليًا.",
+    "emptyCooperativeReceptions": "لا يوجد أي استلام من التعاونية حاليًا."
   },
   "cooperativeTransfers": {
     "title": "التحويلات إلى التعاونية",
     "new": "تحويل جديد",
     "from": "من",
     "to": "إلى",
-    "created": "تم تسجيل التحويل."
+    "created": "تم تسجيل التحويل.",
+    "articleField": "ملصق / مستهلك",
+    "submit": "تحويل",
+    "empty": "لا يوجد أي تحويل حاليًا."
   },
   "inventory": {
     "title": "الجرد والحركات",
@@ -125,13 +169,25 @@
     "movementCooperativeTransferIn": "تحويل وارد (تعاونية)",
     "movementLabelConsumption": "استهلاك ملصق",
     "movementCooperativeReception": "استلام من التعاونية (منتج)",
-    "movementCorrection": "تصحيح"
+    "movementCorrection": "تصحيح",
+    "movementOrderExit": "إخراج طلب",
+    "movementReturnReception": "استلام إرجاع",
+    "movementLoss": "خسارة",
+    "emptyOnHand": "لا توجد أي حركة مسجلة حاليًا.",
+    "emptyMovements": "لا توجد أي حركة حاليًا."
   },
   "settings": {
     "title": "الإعدادات والمستخدمون",
     "language": "اللغة",
     "french": "Français",
-    "arabic": "العربية"
+    "arabic": "العربية",
+    "organization": "المؤسسة",
+    "orgName": "الاسم: {name}",
+    "currency": "عملة التقارير: {currency}",
+    "timezone": "المنطقة الزمنية: {tz}",
+    "users": "المستخدمون",
+    "email": "البريد الإلكتروني",
+    "usersComingSoon": "إنشاء وتعديل المستخدمين من هذه الصفحة سيتوفر مع مرحلة الفريق والصلاحيات المتقدمة — راجع PROGRESS.md."
   },
   "roles": {
     "OWNER": "المالك",

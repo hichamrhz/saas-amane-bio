@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useTranslations } from "next-intl";
 
 type ArticleOption = { id: string; sku: string; label: string; articleName: string };
 type LocationOption = { id: string; name: string; kind: string };
@@ -23,6 +24,8 @@ export function ReceptionForm({
   const [state, formAction, isPending] = useActionState<FormState, FormData>(action, undefined);
   const [kind, setKind] = useState(kindOptions[0]?.value ?? "SUPPLIER_PURCHASE");
   const today = new Date().toISOString().slice(0, 10);
+  const t = useTranslations("purchases");
+  const tCommon = useTranslations("common");
 
   return (
     <details className="rounded-lg border border-brand-100 bg-white p-4" open>
@@ -30,7 +33,7 @@ export function ReceptionForm({
       <form action={formAction} className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {kindOptions.length > 1 ? (
           <label className="flex flex-col gap-1 text-sm text-neutral-700">
-            Type de réception
+            {t("receptionType")}
             <select
               name="kind"
               value={kind}
@@ -49,7 +52,7 @@ export function ReceptionForm({
         )}
 
         <label className="flex flex-col gap-1 text-sm text-neutral-700">
-          Article
+          {tCommon("article")}
           <select
             name="articleVariantId"
             required
@@ -57,7 +60,7 @@ export function ReceptionForm({
             defaultValue=""
           >
             <option value="" disabled>
-              — Choisir —
+              {tCommon("choose")}
             </option>
             {articles.map((a) => (
               <option key={a.id} value={a.id}>
@@ -68,7 +71,7 @@ export function ReceptionForm({
         </label>
 
         <label className="flex flex-col gap-1 text-sm text-neutral-700">
-          Quantité
+          {tCommon("quantity")}
           <input
             name="quantity"
             required
@@ -78,7 +81,7 @@ export function ReceptionForm({
         </label>
 
         <label className="flex flex-col gap-1 text-sm text-neutral-700">
-          Coût unitaire (MAD)
+          {t("unitCost")} (MAD)
           <input
             name="unitCost"
             inputMode="decimal"
@@ -88,7 +91,7 @@ export function ReceptionForm({
         </label>
 
         <label className="flex flex-col gap-1 text-sm text-neutral-700">
-          Emplacement de destination
+          {t("destination")}
           <select
             name="locationId"
             required
@@ -96,7 +99,7 @@ export function ReceptionForm({
             defaultValue=""
           >
             <option value="" disabled>
-              — Choisir —
+              {tCommon("choose")}
             </option>
             {locations.map((l) => (
               <option key={l.id} value={l.id}>
@@ -109,7 +112,7 @@ export function ReceptionForm({
         {kind === "COOPERATIVE_PRODUCT" && (
           <>
             <label className="flex flex-col gap-1 text-sm text-neutral-700">
-              Emplacement coopérative (source des étiquettes)
+              {t("cooperativeSource")}
               <select
                 name="cooperativeLocationId"
                 required
@@ -117,7 +120,7 @@ export function ReceptionForm({
                 defaultValue=""
               >
                 <option value="" disabled>
-                  — Choisir —
+                  {tCommon("choose")}
                 </option>
                 {locations
                   .filter((l) => l.kind === "COOPERATIVE")
@@ -130,13 +133,13 @@ export function ReceptionForm({
             </label>
             <label className="flex items-center gap-2 text-sm text-neutral-700">
               <input type="checkbox" name="costIncludesLabel" />
-              Le coût saisi inclut déjà l&apos;étiquette
+              {t("costIncludesLabel")}
             </label>
           </>
         )}
 
         <label className="flex flex-col gap-1 text-sm text-neutral-700">
-          Date de l&apos;événement
+          {t("eventDate")}
           <input
             type="date"
             name="eventDate"
@@ -147,7 +150,7 @@ export function ReceptionForm({
         </label>
 
         <label className="flex flex-col gap-1 text-sm text-neutral-700">
-          Référence (facultatif)
+          {t("referenceOptional")}
           <input name="reference" className="rounded-md border border-neutral-300 px-3 py-2 text-sm" />
         </label>
 
@@ -162,7 +165,7 @@ export function ReceptionForm({
             disabled={isPending}
             className="rounded-md bg-brand-700 px-3 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
           >
-            Enregistrer la réception
+            {t("saveReception")}
           </button>
         </div>
       </form>

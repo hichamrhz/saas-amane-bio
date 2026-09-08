@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useTranslations } from "next-intl";
 import { createSupplierAction, type FormState } from "./actions";
 
 export function SupplierForm() {
@@ -8,23 +9,25 @@ export function SupplierForm() {
     createSupplierAction,
     undefined
   );
+  const t = useTranslations("suppliers");
+  const tCommon = useTranslations("common");
 
   return (
     <details className="rounded-lg border border-brand-100 bg-white p-4">
       <summary className="cursor-pointer text-sm font-medium text-neutral-800">
-        + Nouveau fournisseur
+        + {t("new")}
       </summary>
       <form action={formAction} className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <label className="flex flex-col gap-1 text-sm text-neutral-700">
-          Nom
+          {t("name")}
           <input name="name" required className="rounded-md border border-neutral-300 px-3 py-2 text-sm" />
         </label>
         <label className="flex flex-col gap-1 text-sm text-neutral-700">
-          Téléphone
+          {t("phone")}
           <input name="phone" className="rounded-md border border-neutral-300 px-3 py-2 text-sm" />
         </label>
         <label className="flex flex-col gap-1 text-sm text-neutral-700">
-          Délai (jours)
+          {t("leadTimeDays")}
           <input
             name="leadTimeDays"
             inputMode="numeric"
@@ -42,7 +45,7 @@ export function SupplierForm() {
             disabled={isPending}
             className="rounded-md bg-brand-700 px-3 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
           >
-            Créer
+            {tCommon("create")}
           </button>
         </div>
       </form>

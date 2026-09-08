@@ -26,7 +26,16 @@
     "date": "Date",
     "notes": "Notes",
     "yes": "Oui",
-    "no": "Non"
+    "no": "Non",
+    "name": "Nom",
+    "article": "Article",
+    "location": "Emplacement",
+    "destination": "Destination",
+    "reference": "Référence",
+    "by": "Par",
+    "choose": "— Choisir —",
+    "none": "— Aucun —",
+    "role": "Rôle"
   },
   "nav": {
     "dashboard": "Tableau de bord",
@@ -73,7 +82,27 @@
     "onHand": "Stock disponible",
     "kindProduct": "Produit",
     "kindConsumable": "Consommable",
-    "consumableType": "Type de consommable"
+    "consumableType": "Type de consommable",
+    "productName": "Nom du produit",
+    "newProductVariant": "Nouvelle variante de produit",
+    "newConsumable": "Nouveau consommable",
+    "purchaseToStockFactor": "1 unité d'achat = X unités de stock",
+    "widthCmOptional": "Largeur (cm), si applicable",
+    "integerOnlyHint": "Quantités entières uniquement (bouteilles, cartons, sachets…)",
+    "emptyProducts": "Aucun produit pour le moment.",
+    "emptyConsumables": "Aucun consommable pour le moment.",
+    "consumableTypeLabel": {
+      "LABEL": "Étiquette",
+      "CARTON": "Carton",
+      "BUBBLE_WRAP": "Papier bulle",
+      "TAPE": "Ruban adhésif",
+      "SALT": "Sel",
+      "SALT_SACHET": "Sachet de sel",
+      "CARD": "Carte",
+      "NOTICE": "Notice",
+      "GIFT": "Cadeau",
+      "OTHER": "Autre"
+    }
   },
   "locations": {
     "title": "Emplacements",
@@ -87,7 +116,10 @@
     "title": "Fournisseurs",
     "name": "Nom",
     "phone": "Téléphone",
-    "leadTimeDays": "Délai (jours)"
+    "leadTimeDays": "Délai (jours)",
+    "new": "Nouveau fournisseur",
+    "empty": "Aucun fournisseur pour le moment.",
+    "leadTimeDaysValue": "Délai : {days} j"
   },
   "purchases": {
     "title": "Achats et réceptions",
@@ -105,14 +137,26 @@
     "insufficientLabels": "Étiquettes insuffisantes : {available} disponibles chez la coopérative, {required} requises pour {label}. Réception bloquée intégralement, aucune écriture effectuée.",
     "noLabelMapping": "Aucune étiquette n'est associée à ce produit dans les paramètres. Réception bloquée.",
     "ambiguousLabelMapping": "Plusieurs étiquettes sont associées à ce produit. Corrigez le paramétrage avant de continuer.",
-    "receptionCreated": "Réception enregistrée."
+    "receptionCreated": "Réception enregistrée.",
+    "tableType": "Type",
+    "newReceptionPurchaseTitle": "Nouvelle réception (achat ou stock d'ouverture)",
+    "newReceptionCooperativeTitle": "Nouvelle réception coopérative",
+    "cooperativeReceptionsTitle": "Réceptions de bouteilles (consomme les étiquettes)",
+    "receptionType": "Type de réception",
+    "referenceOptional": "Référence (facultatif)",
+    "saveReception": "Enregistrer la réception",
+    "emptyReceptions": "Aucune réception pour le moment.",
+    "emptyCooperativeReceptions": "Aucune réception coopérative pour le moment."
   },
   "cooperativeTransfers": {
     "title": "Transferts vers la coopérative",
     "new": "Nouveau transfert",
     "from": "Depuis",
     "to": "Vers",
-    "created": "Transfert enregistré."
+    "created": "Transfert enregistré.",
+    "articleField": "Étiquette / consommable",
+    "submit": "Transférer",
+    "empty": "Aucun transfert pour le moment."
   },
   "inventory": {
     "title": "Inventaires et mouvements",
@@ -125,13 +169,25 @@
     "movementCooperativeTransferIn": "Transfert entrant (coopérative)",
     "movementLabelConsumption": "Consommation étiquette",
     "movementCooperativeReception": "Réception coopérative (produit)",
-    "movementCorrection": "Correction"
+    "movementCorrection": "Correction",
+    "movementOrderExit": "Sortie commande",
+    "movementReturnReception": "Réception retour",
+    "movementLoss": "Perte",
+    "emptyOnHand": "Aucun mouvement enregistré pour le moment.",
+    "emptyMovements": "Aucun mouvement pour le moment."
   },
   "settings": {
     "title": "Paramètres et utilisateurs",
     "language": "Langue",
     "french": "Français",
-    "arabic": "العربية"
+    "arabic": "العربية",
+    "organization": "Organisation",
+    "orgName": "Nom : {name}",
+    "currency": "Devise de reporting : {currency}",
+    "timezone": "Fuseau horaire : {tz}",
+    "users": "Utilisateurs",
+    "email": "E-mail",
+    "usersComingSoon": "La création et l'édition d'utilisateurs depuis cette page arrivera avec la phase équipe/permissions avancées — voir PROGRESS.md."
   },
   "roles": {
     "OWNER": "Propriétaire",
